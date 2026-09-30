@@ -899,6 +899,10 @@ def admin_advance_round(
 STATIC_DIR = Path(__file__).parent / "frontend" / "dist"
 if STATIC_DIR.exists():
     app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+
+    @app.get("/")
+    def serve_root():
+        return FileResponse(STATIC_DIR / "index.html")
     
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):

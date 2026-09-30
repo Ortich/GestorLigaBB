@@ -44,6 +44,13 @@ def test_get_rules(client):
     assert "incentives_catalog" in data
     assert "sponsors" in data
 
+def test_serve_frontend_root(client):
+    from pathlib import Path
+    if (Path(__file__).parent / "frontend" / "dist" / "index.html").exists():
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "Gestor Liga Blood Bowl" in response.text
+
 def test_get_league(client):
     response = client.get("/api/league")
     assert response.status_code == 200
