@@ -157,9 +157,16 @@ if [ -z "$IP" ]; then
   IP="$(curl -4 -fsS --max-time 5 https://ifconfig.me || true)"
 fi
 
+DUCK_NAME="$(grep '^DUCKDNS_DOMAIN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)"
+if [ -n "$DUCK_NAME" ]; then
+  bash "$ROOT/scripts/update-dns.sh" || true
+fi
+
 echo
 echo "Liga en marcha."
-if [ -n "$IP" ]; then
+if [ -n "$DUCK_NAME" ]; then
+  echo "  Direccion:       http://${DUCK_NAME%.duckdns.org}.duckdns.org"
+elif [ -n "$IP" ]; then
   echo "  Direccion:       http://${IP}"
 else
   echo "  Direccion:       http://<ip-publica-de-la-maquina>"
@@ -178,6 +185,11 @@ fi
 if [ "$NEW_KEYS" -eq 1 ] || [ "$NEW_PINS" -eq 1 ]; then
   echo
   echo "Estas claves no vuelven a imprimirse. La de comisario esta en ${ENV_FILE}."
+fi
+if [ -z "$DUCK_NAME" ]; then
+  echo
+  echo "Para un nombre fijo, en vez de la IP:"
+  echo "  sudo bash scripts/update-dns.sh miliga TU_TOKEN"
 fi
 echo
 echo "En la consola de Oracle, la lista de seguridad de la subnet tiene que"

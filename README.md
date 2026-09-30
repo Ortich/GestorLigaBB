@@ -96,12 +96,26 @@ sudo cat /etc/gestor-liga-pins.txt
 sudo grep MASTER_KEY /etc/gestor-liga.env
 ```
 
-Cada entrenador abre `http://IP_PUBLICA` en el movil, elige su equipo e introduce su PIN.
+### Un nombre fijo, en vez de la IP
+
+El nombre se crea gratis en [DuckDNS](https://www.duckdns.org/): entras
+con Google o GitHub, eliges algo como `miliga` y copias el token de la cuenta. En la maquina:
+
+```bash
+sudo bash scripts/update-dns.sh miliga TU_TOKEN
+```
+
+A partir de ahi cada entrenador abre `http://miliga.duckdns.org`, elige su equipo e introduce su
+PIN. Cada cinco minutos la maquina comprueba su IP y, si ha cambiado, actualiza el nombre sola.
+
+Parar la maquina y volver a encenderla no cambia la IP. La pierde si se borra la instancia. Para
+que el numero tampoco se mueva en ese caso, en la consola de Oracle reserva una IP publica
+(Networking, IP management, Reserved public IPs) y asignala a la instancia. Oracle no cobra esa
+reserva.
 
 Oracle puede parar una maquina Always Free si durante 7 dias casi no tiene uso. No borra el disco:
-en la consola, Compute, Instances, Start. Despues mira la IP publica, porque la que asigna el
-asistente puede cambiar al parar la maquina. Cada madrugada se guarda una copia en
-`backend/backups/`. De vez en cuando bajala tambien a tu PC:
+en la consola, Compute, Instances, Start. El nombre de DuckDNS sigue siendo el mismo. Cada
+madrugada se guarda una copia en `backend/backups/`. De vez en cuando bajala tambien a tu PC:
 
 ```bash
 scp -i clave.key ubuntu@IP_PUBLICA:~/GestorLigaBB/backend/liga.db ./liga-copia.db
@@ -244,7 +258,7 @@ frontend/
 Dockerfile             Imagen unica, solo si el VPS ya usa Docker
 docker-compose.yml     Arranque con el fichero de la liga en ./data
 deploy/                Unidad systemd del servidor
-scripts/               setup.sh, start.sh, install-server.sh, backup-liga.sh
+scripts/               setup.sh, start.sh, install-server.sh, update-dns.sh, backup-liga.sh
 ```
 
 ## Tests
