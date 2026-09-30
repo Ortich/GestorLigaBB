@@ -24,5 +24,6 @@ npm install
 cd ..
 
 echo
-echo "Listo. Para jugar, sin Docker:  scripts/start.sh"
-echo "Para desarrollar la interfaz:   scripts/dev.sh"
+echo "Listo."
+echo "  En tu PC:                  scripts/start.sh"
+echo "  En un servidor Ubuntu:     sudo bash scripts/install-server.sh"

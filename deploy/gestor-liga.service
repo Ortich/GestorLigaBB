@@ -1,0 +1,20 @@
+[Unit]
+Description=Gestor de Liga Blood Bowl
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+Group=__GROUP__
+WorkingDirectory=__ROOT__/backend
+EnvironmentFile=/etc/gestor-liga.env
+ExecStart=__ROOT__/backend/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 80
+Restart=always
+RestartSec=3
+# Permite escuchar en el puerto 80 sin ejecutar el proceso como root.
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

@@ -32,95 +32,109 @@ que devuelve la API.
 
 ## Puesta en marcha
 
-En tu PC no hace falta Docker. Son dos comandos, y la app solo existe mientras la terminal sigue abierta:
+La liga vive en un servidor de fuera. El PC de casa no tiene que estar encendido: cada entrenador
+abre la misma direccion desde su movil, este donde este. Entrada, calculos y base de datos ocurren
+en esa maquina.
+
+No hace falta otro servidor de base de datos. Toda la liga es el fichero `backend/liga.db` dentro
+de la maquina. Copiar ese fichero es la copia de seguridad.
+
+### Servidor gratuito: Oracle Cloud Always Free
+
+Es el sitio que encaja a coste cero. Da una maquina virtual pequena con disco propio, IP publica y
+10 TB de salida al mes, dentro del plan Always Free. La app es un solo proceso de Python; con 1 GB
+de RAM le sobra. El disco no se borra al reiniciar, que es lo que necesita SQLite.
+
+Los planes gratuitos de Render, Railway o Fly no sirven: el disco es temporal o de pago, y al
+reiniciar la liga desapareceria. Google Cloud regala una maquina `e2-micro`, pero la IP publica se
+cobra (unos 3,60 USD al mes) y solo incluye 1 GB de trafico de salida. Supabase no aloja esta
+aplicacion.
+
+La cuenta de Oracle pide una tarjeta para comprobar la identidad. Mientras la maquina sea la forma
+`VM.Standard.E2.1.Micro`, el disco el de serie (unos 50 GB) y no crees nada mas, el coste es 0.
+La region de origen no se puede cambiar despues: elige la mas cercana a los entrenadores (en
+Espana, Spain Central).
+
+1. Crea la cuenta en <https://www.oracle.com/cloud/free/>.
+2. Compute, Instances, Create instance.
+   - Imagen: Ubuntu 24.04, marcada Always Free Eligible.
+   - Shape: Change shape y elige `VM.Standard.E2.1.Micro` (AMD, 1 GB), tambien Always Free
+     Eligible. Una forma mas grande si se cobra.
+   - Red: la que propone el asistente, con *Assign a public IPv4 address*.
+   - Claves SSH: *Generate a key pair* y descarga la clave privada.
+   - Disco de arranque: dejalo en el tamano por defecto. No anadas discos.
+3. Si aparece *Out of host capacity*, cambia el dominio de disponibilidad y reintenta. Sigue en la
+   forma Micro. Si en la cuenta gratuita no hay sitio, pasar la cuenta a Pay As You Go no cobra
+   los recursos Always Free; solo cobraria lo que se salga de ese limite.
+4. Con la instancia en RUNNING, copia la IP publica.
+5. Abre el puerto 80 en la red de Oracle, no solo dentro de la maquina. Entra en la subnet de la
+   instancia, luego en su Security List, Add Ingress Rules: origen `0.0.0.0/0`, protocolo TCP,
+   puerto 80.
+6. Desde tu PC:
 
 ```bash
-scripts/setup.sh     # una vez: instala dependencias y crea la liga
-scripts/start.sh     # cada vez que jugais. Ctrl+C para pararla
+chmod 600 clave.key
+ssh -i clave.key ubuntu@IP_PUBLICA
 ```
 
-`start.sh` abre http://localhost:8000 y muestra la direccion para los moviles de la misma WiFi. La base de datos es el fichero `backend/liga.db`. Copia de seguridad:
+7. Dentro de la maquina:
 
 ```bash
-cp backend/liga.db "backend/liga-$(date +%F).db"
+sudo apt-get update && sudo apt-get install -y git
+git clone https://github.com/Ortich/GestorLigaBB.git
+cd GestorLigaBB
+sudo bash scripts/install-server.sh
 ```
 
-Para desarrollar la interfaz con recarga en caliente (backend en el 8000 y frontend en el 3000):
+El script instala dependencias, compila la interfaz, crea la liga, cambia los PIN de ejemplo por
+otros aleatorios y deja un servicio que arranca solo. Al terminar imprime la direccion
+(`http://IP_PUBLICA`), la clave del comisario y los PIN. Anotalos: no se vuelven a mostrar.
+Tambien quedan en la maquina, solo para root:
+
+```bash
+sudo cat /etc/gestor-liga-pins.txt
+sudo grep MASTER_KEY /etc/gestor-liga.env
+```
+
+Cada entrenador abre `http://IP_PUBLICA` en el movil, elige su equipo e introduce su PIN.
+
+Oracle puede parar una maquina Always Free si durante 7 dias casi no tiene uso. No borra el disco:
+en la consola, Compute, Instances, Start. Despues mira la IP publica, porque la que asigna el
+asistente puede cambiar al parar la maquina. Cada madrugada se guarda una copia en
+`backend/backups/`. De vez en cuando bajala tambien a tu PC:
+
+```bash
+scp -i clave.key ubuntu@IP_PUBLICA:~/GestorLigaBB/backend/liga.db ./liga-copia.db
+```
+
+### Probarla en tu PC
+
+Sirve para ver la app antes de subirla. Solo existe mientras la terminal sigue abierta, y los
+moviles de fuera de esa WiFi no llegan:
+
+```bash
+scripts/setup.sh     # una vez
+scripts/start.sh     # Ctrl+C para pararla
+```
+
+`start.sh` abre <http://localhost:8000>. Los PIN de esa copia local son los de la tabla de mas
+abajo. Para desarrollar la interfaz con recarga en caliente:
 
 ```bash
 scripts/dev.sh
 ```
 
-### Manualmente
-
-```bash
-# Backend
-cd backend
-python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-.venv/bin/python seed.py --reset          # crea equipos, calendario y patrocinadores
-.venv/bin/python -m uvicorn app.main:app --reload --port 8000
-
-# Frontend
-cd frontend
-npm install
-npm run dev                                # http://localhost:3000
-```
-
 Documentacion interactiva de la API en <http://localhost:8000/docs>.
 
-### La noche de liga
+### Docker
 
-Lo mas comodo es levantar un solo proceso en el portatil del anfitrion y que todos los moviles
-entren por la IP local:
-
-```bash
-scripts/start.sh
-# los demas entran en http://<ip-del-portatil>:8000
-```
-
-## Donde dejarla, sin pagar
-
-No hace falta otro servidor de base de datos. En local, toda la liga es el fichero
-`backend/liga.db`. Copiarlo es la copia de seguridad. Supabase, Postgres o MySQL no aportan nada
-aqui: son otro servicio que mantener, y el plan gratuito de Supabase ademas pausa el proyecto si
-pasa un tiempo sin uso.
-
-La opcion que encaja con 8 personas y coste cero es tenerla en casa, arrancada con `scripts/start.sh`.
-Ese proceso ocupa lo que ocupa un programa de Python. Al cerrar la terminal no queda nada corriendo.
-
-1. **Misma WiFi, la noche del partido.** El portatil del anfitrion ejecuta la app y los moviles
-   entran por su IP local. No hay nada que abrir a internet.
-2. **Desde casa de cada uno, entre jornadas.** Deja la app en un equipo que pueda quedarse
-   encendido (ese portatil, un mini PC o una Raspberry Pi) e instala
-   [Tailscale](https://tailscale.com), que es gratis para uso personal. Cada entrenador entra en
-   la red de Tailscale y abre `http://<ip-tailscale>:8000`. No hace falta abrir puertos del router
-   ni comprar un dominio.
-3. **Un VPS en internet**, solo si no quieres ningun aparato encendido en casa. El plan Always Free
-   de Oracle Cloud da una maquina virtual con disco persistente sin coste. El disco tiene que ser
-   persistente: en los planes gratuitos de Render, Railway o Fly el disco se borra al reiniciar y
-   la liga desapareceria con el.
-
-Antes de exponerla fuera de tu WiFi cambia `SECRET_KEY`, `MASTER_KEY` y los PIN.
-
-### Docker, solo si mas adelante usas un servidor
-
-En el PC de casa no lo uses: el demonio de Docker se queda residente y pesa mas que la propia app.
-La imagen sirve si algun dia mueves la liga a un VPS. El fichero queda en `./data/liga.db`, fuera
-del contenedor, asi que actualizar la imagen no borra los partidos.
+En el PC no lo uses. En el servidor gratuito tampoco hace falta: `install-server.sh` levanta el
+mismo proceso sin el demonio de Docker. La imagen queda por si ya administras otro VPS con
+Docker. El fichero de la liga queda en `./data/liga.db`, fuera del contenedor.
 
 ```bash
 docker compose up -d --build
-# http://localhost:8000
 ```
-
-La primera vez, si `data/liga.db` no existe, se crean los 8 equipos de ejemplo. Para guardar una
-copia:
-
-```bash
-cp data/liga.db "data/liga-$(date +%F).db"
-```
-
-Para empezar la liga de cero, para el contenedor, borra `data/liga.db` y vuelvelo a arrancar.
 
 ## Datos de ejemplo
 
@@ -139,9 +153,10 @@ round-robin de 7 jornadas, los 4 patrocinadores y las recompensas semanales.
 | Lustria Croakers | Hombre Lagarto | Sara | 7777 |
 | Chaos All-Stars | Caos Elegido | Ivan | 8888 |
 
-Clave del panel de comisario: `nuffle-2020`.
+Clave del panel de comisario en una copia local: `nuffle-2020`.
 
-> Cambia los PIN y la `MASTER_KEY` antes de usarlo de verdad (ver Configuracion).
+En el servidor, `install-server.sh` genera otra clave y otros PIN. Los de esta tabla solo valen
+en la copia de tu PC.
 
 ## Configuracion
 
@@ -226,9 +241,10 @@ frontend/
   src/app/             /, /equipo, /partido, /liga, /reglas, /admin
   src/components/      AppShell, PinPad, hojas inferiores y pasos del partido
   src/lib/             Cliente de API, tipos y hooks
-Dockerfile             Imagen unica (frontend + API)
+Dockerfile             Imagen unica, solo si el VPS ya usa Docker
 docker-compose.yml     Arranque con el fichero de la liga en ./data
-scripts/               setup.sh, start.sh, dev.sh, build.sh, docker-entrypoint.sh
+deploy/                Unidad systemd del servidor
+scripts/               setup.sh, start.sh, install-server.sh, backup-liga.sh
 ```
 
 ## Tests
