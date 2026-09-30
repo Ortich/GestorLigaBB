@@ -58,6 +58,10 @@ export default function MatchPage() {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (match?.status) window.scrollTo(0, 0);
+  }, [match?.status]);
+
   // El rival puede estar apuntando eventos desde su propio movil.
   usePoll(refresh, 10000, match?.status === "IN_PROGRESS" || match?.status === "READY_CHECK");
 
