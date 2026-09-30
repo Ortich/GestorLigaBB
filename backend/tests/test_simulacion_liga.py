@@ -85,3 +85,34 @@ def test_temporada_completa_cuadra_la_clasificacion(client):
         "Naggaroth Nightmares",
     ]
     assert [fila["points"] for fila in temporada.clasificacion] == [15, 15, 13, 12, 12, 11, 7, 6]
+
+
+def test_muertes_y_despidos_no_disparan_el_oro(client):
+    """Despedir o reponer un muerto no deja oro de mas: el fichaje se come esa devolucion."""
+    temporada = simular(client, SEMILLA)
+    por_equipo: dict[str, dict[str, int]] = {}
+
+    for acta in temporada.actas:
+        for caja in acta.cajas:
+            assert caja.delta == caja.explicado, (
+                f"{caja.team} en la jornada {acta.round_number}: "
+                f"la tesoreria cambia {caja.delta} y las partidas suman {caja.explicado}"
+            )
+            fila = por_equipo.setdefault(
+                caja.team,
+                {
+                    "antes": caja.antes,
+                    "despues": caja.despues,
+                    "ganancias": 0,
+                    "recompensa": 0,
+                    "plantilla": 0,
+                },
+            )
+            fila["despues"] = caja.despues
+            fila["ganancias"] += caja.ganancias
+            fila["recompensa"] += caja.recompensa
+            fila["plantilla"] += caja.plantilla
+
+    for nombre, fila in por_equipo.items():
+        assert fila["plantilla"] == 0, (nombre, fila)
+        assert fila["despues"] - fila["antes"] == fila["ganancias"] + fila["recompensa"], (nombre, fila)

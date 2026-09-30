@@ -35,6 +35,33 @@ INCENTIVOS = (
 
 
 @dataclass
+class Caja:
+    """Oro de un equipo en un partido, partido a partido."""
+
+    team: str
+    antes: int
+    despues: int
+    ganancias: int
+    muerte: int = 0
+    despido: int = 0
+    fichaje: int = 0
+    recompensa: int = 0
+
+    @property
+    def delta(self) -> int:
+        return self.despues - self.antes
+
+    @property
+    def plantilla(self) -> int:
+        """Lo que dejan muertes y despidos una vez pagados los fichajes."""
+        return self.muerte + self.despido - self.fichaje
+
+    @property
+    def explicado(self) -> int:
+        return self.ganancias + self.recompensa + self.plantilla
+
+
+@dataclass
 class Acta:
     round_number: int
     home: str
@@ -65,6 +92,7 @@ class Acta:
     despidos: list[str]
     fichajes: list[str]
     tesoreria: list[str]
+    cajas: list[Caja]
     sponsors: list[str]
 
 
@@ -326,16 +354,37 @@ def _jugar(
     if bounty:
         bounty_txt = f"Recompensa: {bounty['bounty']} para {bounty['team_name']} ({_oro(bounty['gold'])})."
 
-    despidos, fichajes = _renovar_plantillas(
+    despidos, fichajes, cifras = _renovar_plantillas(
         client, tokens, pins, informe["injuries"], home_id, away_id, home_name, away_name
     )
+    muerte_por_equipo: dict[str, int] = {}
+    for pago in informe.get("rookie_safety_payouts") or []:
+        muerte_por_equipo[pago["team_name"]] = muerte_por_equipo.get(pago["team_name"], 0) + int(pago["gold"])
+    recompensa_equipo = bounty.get("team_name") if bounty else None
+    recompensa_oro = int(bounty["gold"]) if bounty else 0
+
     tesoreria = []
-    for team_id, team_name in ((home_id, home_name), (away_id, away_name)):
+    cajas: list[Caja] = []
+    for team_id, team_name, ganancias in (
+        (home_id, home_name, informe["home_winnings"]),
+        (away_id, away_name, informe["away_winnings"]),
+    ):
         despues = _tesoreria(client, team_id)
         antes = tesoreria_antes[team_id]
-        signo = "+" if despues >= antes else ""
+        caja = Caja(
+            team=team_name,
+            antes=antes,
+            despues=despues,
+            ganancias=ganancias,
+            muerte=muerte_por_equipo.get(team_name, 0),
+            despido=cifras[team_name]["despido"],
+            fichaje=cifras[team_name]["fichaje"],
+            recompensa=recompensa_oro if team_name == recompensa_equipo else 0,
+        )
+        cajas.append(caja)
+        signo = "+" if caja.delta >= 0 else ""
         tesoreria.append(
-            f"Tesoreria de {team_name}: {_oro(antes)} → {_oro(despues)} ({signo}{_oro(despues - antes)})."
+            f"Tesoreria de {team_name}: {_oro(antes)} → {_oro(despues)} ({signo}{_oro(caja.delta)})."
         )
 
     return Acta(
@@ -375,6 +424,7 @@ def _jugar(
         despidos=despidos,
         fichajes=fichajes,
         tesoreria=tesoreria,
+        cajas=cajas,
         sponsors=[
             f"{item['sponsor_name']} → {item['team_name']}"
             for item in informe.get("sponsors") or []
@@ -424,6 +474,8 @@ def formatear(temporada: Temporada) -> str:
 
     lineas.extend(["", "Clasificacion final"])
     lineas.extend(_tabla(temporada.clasificacion))
+    lineas.extend(["", "Balance de oro"])
+    lineas.extend(_balance(temporada))
     if temporada.patrocinadores:
         lineas.extend(["", "Patrocinadores al cierre"])
         lineas.extend(f"  {item}" for item in temporada.patrocinadores)
@@ -435,6 +487,43 @@ def formatear(temporada: Temporada) -> str:
         lineas.extend(["", "Bajas con secuela"])
         lineas.extend(f"  {item}" for item in graves)
     return "\n".join(lineas)
+
+
+def _balance(temporada: Temporada) -> list[str]:
+    """Suma la temporada. La plantilla es muerte + despido - fichaje."""
+    totales: dict[str, dict[str, int]] = {}
+    for acta in temporada.actas:
+        for caja in acta.cajas:
+            fila = totales.setdefault(
+                caja.team,
+                {"antes": caja.antes, "despues": caja.despues, "ganancias": 0, "recompensa": 0, "plantilla": 0},
+            )
+            fila["despues"] = caja.despues
+            fila["ganancias"] += caja.ganancias
+            fila["recompensa"] += caja.recompensa
+            fila["plantilla"] += caja.plantilla
+
+    lineas = [
+        "    Equipo                      Inicio     Final   Ganancias  Recompensa  Plantilla",
+    ]
+    suma_ganancias = suma_recompensa = suma_plantilla = 0
+    for nombre in sorted(totales, key=lambda n: -totales[n]["despues"]):
+        fila = totales[nombre]
+        suma_ganancias += fila["ganancias"]
+        suma_recompensa += fila["recompensa"]
+        suma_plantilla += fila["plantilla"]
+        lineas.append(
+            f"    {nombre:<26} {_oro(fila['antes']):>10} {_oro(fila['despues']):>10}"
+            f" {_oro(fila['ganancias']):>11} {_oro(fila['recompensa']):>11} {_oro(fila['plantilla']):>10}"
+        )
+    lineas.append(
+        f"    {'Total':<26} {'':>10} {'':>10}"
+        f" {_oro(suma_ganancias):>11} {_oro(suma_recompensa):>11} {_oro(suma_plantilla):>10}"
+    )
+    lineas.append(
+        "    Plantilla = oro de muertes + oro de despidos - coste de los fichajes que los sustituyen."
+    )
+    return lineas
 
 
 def _tabla(filas: list[dict[str, Any]]) -> list[str]:
@@ -598,10 +687,14 @@ def _renovar_plantillas(
     away_id: int,
     home_name: str,
     away_name: str,
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str], dict[str, dict[str, int]]]:
     nombres = {home_id: home_name, away_id: away_name}
     despidos: list[str] = []
     fichajes: list[str] = []
+    cifras = {
+        home_name: {"despido": 0, "fichaje": 0},
+        away_name: {"despido": 0, "fichaje": 0},
+    }
     for item in injuries:
         team_id = item["team_id"]
         team_name = nombres[team_id]
@@ -618,20 +711,22 @@ def _renovar_plantillas(
                 raise RuntimeError(
                     f"El despido de {jugador['name']} devolvio {devuelto}, no el coste base {jugador['cost']}."
                 )
+            cifras[team_name]["despido"] += devuelto
             despidos.append(
                 f"Despido: {team_name} echa a {jugador['name']} y recupera {_oro(devuelto)} "
                 f"de coste base (valor actual {_oro(jugador['current_value'])})."
             )
-            alta = _fichar(client, headers, team_id, team_name, jugador["position"])
+            alta, coste = _fichar(client, headers, team_id, team_name, jugador["position"])
         elif item["effect"] == "Muerto":
             plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
             jugador = next(p for p in plantilla["players"] if p["id"] == item["player_id"])
-            alta = _fichar(client, headers, team_id, team_name, jugador["position"])
+            alta, coste = _fichar(client, headers, team_id, team_name, jugador["position"])
         else:
             continue
+        cifras[team_name]["fichaje"] += coste
         if alta:
             fichajes.append(alta)
-    return despidos, fichajes
+    return despidos, fichajes, cifras
 
 
 def _fichar(
@@ -640,7 +735,7 @@ def _fichar(
     team_id: int,
     team_name: str,
     position_name: str,
-) -> Optional[str]:
+) -> tuple[Optional[str], int]:
     opciones = client.get(f"/api/teams/{team_id}/roster-options", headers=headers).json()
     plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
     tesoreria = plantilla["treasury"]
@@ -655,7 +750,7 @@ def _fichar(
     if misma is None:
         posibles = [p for p in opciones["positions"] if p["remaining"] > 0 and p["cost"] <= tesoreria]
         if not posibles:
-            return f"Fichaje: {team_name} no llega a cubrir la baja de {position_name}."
+            return f"Fichaje: {team_name} no llega a cubrir la baja de {position_name}.", 0
         misma = min(posibles, key=lambda p: p["cost"])
     usados = {p["name"] for p in plantilla["players"]}
     nombre = f"Recluta {misma['name']}"
@@ -672,8 +767,10 @@ def _fichar(
             json={"position_code": misma["code"], "name": candidato},
         )
     )
+    coste = antes - despues["treasury"]
     return (
-        f"Fichaje: {team_name} contrata a {candidato} ({misma['name']}) por {_oro(antes - despues['treasury'])}."
+        f"Fichaje: {team_name} contrata a {candidato} ({misma['name']}) por {_oro(coste)}.",
+        coste,
     )
 
 
