@@ -1,0 +1,244 @@
+{
+  "weather_table": {
+    "2": {
+      "name": "Vendaval Asfixiante (Sweltering Heat)",
+      "description": "El calor es insoportable. Al final de cada entrada (drive), tira 1D6 por cada jugador en el campo: con un 1, el jugador sufre insolación y debe ir al banquillo de Reservas sin poder participar en la siguiente entrada."
+    },
+    "3": {
+      "name": "Muy Soleado (Very Sunny)",
+      "description": "El sol ciega a los jugadores. Se aplica un modificador de -1 a todas las pruebas de Pase realizadas por cualquier equipo."
+    },
+    "4": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "5": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "6": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "7": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "8": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "9": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "10": {
+      "name": "Clima Perfecto (Nice)",
+      "description": "Condiciones ideales para jugar al Blood Bowl. Sin modificadores especiales."
+    },
+    "11": {
+      "name": "Lluvia Torrencial (Pouring Rain)",
+      "description": "El balón resbala de forma incontrolable. Aplica un modificador de -1 a todas las pruebas de Atrapar, Recoger o Interceptar el balón."
+    },
+    "12": {
+      "name": "Ventisca (Blizzard)",
+      "description": "Nieve y hielo sobre el césped. Modificador de -1 a todas las pruebas de A Por Ellos (Rush/GFI). Además, no se pueden intentar pases Largos ni Bombas."
+    }
+  },
+  "kick_off_table": {
+    "2": {
+      "name": "¡Disturbios! (Get the Ref)",
+      "description": "Los hinchas linchan al árbitro. Cada equipo recibe 1 Soborno (Bribe) gratuito para usar en este partido."
+    },
+    "3": {
+      "name": "Tiempo Muerto (Time-out)",
+      "description": "Si el equipo que recibe el balón no ha comenzado su turno en la casilla 8 del marcador de turnos, el marcador retrocede 1 turno para ambos equipos."
+    },
+    "4": {
+      "name": "Defensa Sólida (Solid Defence)",
+      "description": "El entrenador que patea puede reorganizar la posición de D3+3 jugadores que no estén en zonas de defensa enemigas."
+    },
+    "5": {
+      "name": "Patada Alta (High Kick)",
+      "description": "Un jugador del equipo que recibe que no esté marcado puede colocarse directamente en la casilla donde va a aterrizar el balón."
+    },
+    "6": {
+      "name": "Hinchas Entregados (Cheering Fans)",
+      "description": "Ambos equipos tiran 1D6 + Animadoras. El equipo con mayor resultado gana 1 Segunda Oportunidad (Reroll) adicional para esta parte."
+    },
+    "7": {
+      "name": "Clima Cambiante (Changing Weather)",
+      "description": "El tiempo cambia repentinamente. Tira de nuevo 2D6 en la tabla de clima para ver las nuevas condiciones."
+    },
+    "8": {
+      "name": "Cuerpo Técnico Brillante (Brilliant Coaching)",
+      "description": "Ambos equipos tiran 1D6 + Ayudantes de Entrenador. El ganador recibe 1 Segunda Oportunidad (Reroll) adicional para esta parte."
+    },
+    "9": {
+      "name": "Reacción Rápida (Quick Snap)",
+      "description": "D3+3 jugadores del equipo que recibe pueden moverse 1 casilla gratis en cualquier dirección antes de comenzar el turno regular."
+    },
+    "10": {
+      "name": "¡Blitz! (Blitz)",
+      "description": "¡El equipo pateador se anticipa! Puede activar D3+3 jugadores para realizar una acción de movimiento, y uno de ellos puede realizar un Blitz o Falta antes del turno rival."
+    },
+    "11": {
+      "name": "Árbitro Estricto (Officious Ref)",
+      "description": "El colegiado vigila de cerca. Cada equipo tira 1D6 por un jugador aleatorio; con un 1, el jugador es expulsado por juego sucio."
+    },
+    "12": {
+      "name": "Invasión de Campo (Pitch Invasion)",
+      "description": "El público salta enfurecido al césped. Tira 1D6 por cada jugador en el campo; con un 6, el jugador queda Aturdido (Stunned) de inmediato."
+    }
+  },
+  "prayers_to_nuffle": {
+    "1": {
+      "name": "Trampilla Traicionera",
+      "description": "Un jugador rival cae en una trampilla oculta del campo y es colocado directamente en Reservas."
+    },
+    "2": {
+      "name": "Amigos del Colegiado",
+      "description": "El árbitro hace la vista gorda ante tu primera falta expulsable del partido."
+    },
+    "3": {
+      "name": "Estilete Oculto",
+      "description": "Un jugador de tu elección gana la habilidad Puñal (Stab) durante este partido."
+    },
+    "4": {
+      "name": "Balón Pesado",
+      "description": "Cualquier intento de pase del rival sufre un modificador adicional de -1."
+    },
+    "5": {
+      "name": "Puño de Hierro",
+      "description": "Un jugador gana Golpe Mortífero +1 (Mighty Blow) durante la primera parte."
+    },
+    "6": {
+      "name": "Malas Artes",
+      "description": "Puedes colocar un jugador extra en la línea de defensa durante una entrada."
+    },
+    "7": {
+      "name": "Favorito de la Grada",
+      "description": "Tu equipo suma +1 a todas las tiradas de FAMA y patada inicial."
+    },
+    "8": {
+      "name": "Inspiración Heroica",
+      "description": "Un jugador designado puede repetir una tirada fallida una vez por parte sin consumir RR de equipo."
+    },
+    "9": {
+      "name": "Bajo Escrutinio",
+      "description": "El rival no puede usar sobornos durante los primeros 4 turnos."
+    },
+    "10": {
+      "name": "Terreno Embarrado",
+      "description": "Los jugadores rivales pagan 2 casillas de movimiento para levantarse en lugar de 3."
+    },
+    "11": {
+      "name": "Tacos Afilados",
+      "description": "Tus faltas tienen +1 al blindaje si el rival está boca abajo."
+    },
+    "12": {
+      "name": "Venganza Jurada",
+      "description": "Designa un jugador rival: tus jugadores tienen +1 a derribarlo en Placajes."
+    },
+    "13": {
+      "name": "Bendición de Nuffle",
+      "description": "Ganas 1 Segunda Oportunidad extra para usar en cualquier momento."
+    },
+    "14": {
+      "name": "Presencia Aterradora",
+      "description": "Un jugador gana Presencia Perturbadora durante todo el partido."
+    },
+    "15": {
+      "name": "Médico de Guardia",
+      "description": "Ganas un uso gratuito de Apotecario adicional sólo para este partido."
+    },
+    "16": {
+      "name": "Iluminado por Nuffle",
+      "description": "El jugador con menos SPP de tu equipo gana 3 SPP de inmediato por la gloria de los dioses."
+    }
+  },
+  "incentives_catalog": [
+    {
+      "id": "bloodweiser_keg",
+      "name": "Barril de Bloodweiser",
+      "cost": 50000,
+      "max_qty": 2,
+      "description": "Añade +1 a las tiradas de recuperación de Jugadores Inconscientes (KO) al final de cada entrada."
+    },
+    {
+      "id": "bribe",
+      "name": "Soborno al Árbitro (Bribe)",
+      "cost": 100000,
+      "max_qty": 3,
+      "description": "Evita una expulsión por falta o arma secreta con un resultado de 2-6 en 1D6."
+    },
+    {
+      "id": "wandering_apothecary",
+      "name": "Apotecario Ambulante",
+      "cost": 100000,
+      "max_qty": 2,
+      "description": "Permite repetir una tirada de Lesión o curar a un jugador herido durante el partido."
+    },
+    {
+      "id": "part_time_assistant",
+      "name": "Entrenador Asistente Temporal",
+      "cost": 20000,
+      "max_qty": 3,
+      "description": "Suma +1 a la tirada de Patada Inicial para el evento de Cuerpo Técnico Brillante."
+    },
+    {
+      "id": "temp_cheerleader",
+      "name": "Animadora Temporal",
+      "cost": 20000,
+      "max_qty": 3,
+      "description": "Suma +1 a la tirada de Patada Inicial para el evento de Hinchas Entregados."
+    },
+    {
+      "id": "biased_referee",
+      "name": "Árbitro Parcial / Comprado",
+      "cost": 120000,
+      "max_qty": 1,
+      "description": "Tus faltas sólo son expulsadas con doble 1 o doble 6, y las del rival con cualquier doble."
+    },
+    {
+      "id": "wizard",
+      "name": "Mago Hechicero (Bola de Fuego / Rayo)",
+      "cost": 150000,
+      "max_qty": 1,
+      "description": "Permite lanzar una Bola de Fuego (área de 3x3 casillas) o un Rayo (objetivo individual) una vez por partido."
+    },
+    {
+      "id": "mercenary_player",
+      "name": "Jugador Mercenario Veterano",
+      "cost": 100000,
+      "max_qty": 2,
+      "description": "Contrata a un jugador mercenario solitario con una habilidad primaria a elegir para este partido."
+    }
+  ],
+  "sponsors": {
+    "prensa_amarilla": {
+      "id": "prensa_amarilla",
+      "name": "Prensa Amarilla",
+      "description": "Se asigna al último clasificado de la liga.",
+      "benefit": "+1 Fan Factor permanente y el derecho a elegir patada inicial en cada encuentro."
+    },
+    "rincon_tabernero": {
+      "id": "rincon_tabernero",
+      "name": "El Rincón del Tabernero",
+      "description": "Se asigna al equipo con peor diferencial de Touchdowns.",
+      "benefit": "+1 a tiradas de recuperación de KO y 1 Segunda Oportunidad (Reroll) gratuita por partido."
+    },
+    "carniceria_da_boyz": {
+      "id": "carniceria_da_boyz",
+      "name": "Carnicería Da Boyz",
+      "description": "Se asigna al equipo con más bajas causadas en la liga.",
+      "benefit": "+20,000 monedas de oro extra en ganancias si causa >= 2 bajas en el partido."
+    },
+    "sindicato_malhechores": {
+      "id": "sindicato_malhechores",
+      "name": "Sindicato Malhechores",
+      "description": "Se asigna al equipo con más faltas cometidas.",
+      "benefit": "1 Soborno (Bribe) gratuito en cada partido."
+    }
+  }
+}
