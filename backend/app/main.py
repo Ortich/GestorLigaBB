@@ -80,15 +80,18 @@ def _mount_frontend() -> None:
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa(full_path: str):  # pragma: no cover - servido en produccion
-        candidate = dist / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        html = dist / f"{full_path}.html" if full_path else dist / "index.html"
-        if html.is_file():
-            return FileResponse(html)
-        index = dist / "index.html"
-        if index.is_file():
-            return FileResponse(index)
+        relative = full_path.strip("/")
+        # `trailingSlash: true` exporta cada ruta como <ruta>/index.html.
+        for candidate in (
+            dist / relative if relative else dist / "index.html",
+            dist / relative / "index.html" if relative else dist / "index.html",
+            dist / f"{relative}.html" if relative else dist / "index.html",
+        ):
+            if candidate.is_file():
+                return FileResponse(candidate)
+        fallback = dist / "404.html"
+        if fallback.is_file():
+            return FileResponse(fallback, status_code=404)
         return JSONResponse(status_code=404, content={"detail": "No encontrado"})
 
 
