@@ -7,6 +7,10 @@ import { formatGold } from "@/lib/api";
 import { PLAYER_STATUS_LABEL, PLAYER_STATUS_STYLE } from "@/lib/labels";
 import type { Player } from "@/lib/types";
 
+interface PlayerActions {
+  onFire?: (player: Player) => void;
+}
+
 export function PlayerRow({ player, onOpen }: { player: Player; onOpen: (player: Player) => void }) {
   return (
     <button
@@ -36,7 +40,15 @@ export function PlayerRow({ player, onOpen }: { player: Player; onOpen: (player:
   );
 }
 
-export function PlayerSheet({ player, onClose }: { player: Player | null; onClose: () => void }) {
+export function PlayerSheet({
+  player,
+  onClose,
+  onFire,
+}: {
+  player: Player | null;
+  onClose: () => void;
+  onFire?: (player: Player) => void;
+}) {
   return (
     <Sheet open={player !== null} title={player ? `#${player.number} ${player.name}` : ""} onClose={onClose}>
       {player && (
@@ -86,13 +98,23 @@ export function PlayerSheet({ player, onClose }: { player: Player | null; onClos
               </dd>
             </div>
           </dl>
+          {onFire && player.status !== "DEAD" && player.status !== "RETIRED" && (
+            <button type="button" className="btn btn-secondary w-full" onClick={() => onFire(player)}>
+              Despedir · recuperas {formatGold(player.cost)}
+            </button>
+          )}
+          {onFire && player.status !== "DEAD" && player.status !== "RETIRED" && player.current_value !== player.cost && (
+            <p className="text-xs text-stone-500">
+              El despido devuelve el coste base, no los {formatGold(player.current_value)} de valor actual.
+            </p>
+          )}
         </>
       )}
     </Sheet>
   );
 }
 
-export function PlayerListCard({ players }: { players: Player[] }) {
+export function PlayerListCard({ players, onFire }: { players: Player[] } & PlayerActions) {
   const [selected, setSelected] = useState<Player | null>(null);
   return (
     <>
@@ -101,7 +123,18 @@ export function PlayerListCard({ players }: { players: Player[] }) {
           <PlayerRow key={player.id} player={player} onOpen={setSelected} />
         ))}
       </div>
-      <PlayerSheet player={selected} onClose={() => setSelected(null)} />
+      <PlayerSheet
+        player={selected}
+        onClose={() => setSelected(null)}
+        onFire={
+          onFire
+            ? (player) => {
+                onFire(player);
+                setSelected(null);
+              }
+            : undefined
+        }
+      />
     </>
   );
 }

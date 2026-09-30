@@ -228,7 +228,7 @@
     "title": "Red de Seguridad de Novatos",
     "last_round": 2,
     "tiers": [100, 50, 25],
-    "text": "Exclusivo para las Jornadas 1 y 2. Si un jugador sufre una lesion permanente o muere, el equipo recibe en tesoreria el 100% de su valor la primera vez, el 50% la segunda y el 25% a partir de la tercera."
+    "text": "Exclusivo para las Jornadas 1 y 2, y solo si el jugador muere. No hay decision que tomar: el equipo recibe en tesoreria el 100% de su valor actual (coste mas mejoras) la primera vez, el 50% la segunda y el 25% a partir de la tercera. Una lesion de por vida no genera este pago."
   },
   "post_match": {
     "winnings_dice": "D6",

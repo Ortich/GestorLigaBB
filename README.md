@@ -207,9 +207,11 @@ Desempates por este orden: diferencia de TD, diferencia de bajas causadas y TD a
 
 ### Red de Seguridad de Novatos
 
-Solo en las jornadas 1 y 2. Cuando un jugador muere o sufre una lesion permanente, su equipo
-recibe en tesoreria el 100 % de su valor la primera vez, el 50 % la segunda y el 25 % a partir de
-la tercera.
+Solo en las jornadas 1 y 2, y solo si el jugador muere. El equipo recibe el 100 % de su valor
+actual (coste mas mejoras) la primera vez, el 50 % la segunda y el 25 % a partir de la tercera.
+Una lesion de por vida no paga sola: el jugador sigue en la plantilla. Si se le despide, la
+tesoreria recupera unicamente su coste base, sin las mejoras. Un zombi de 40.000 que vale 80.000
+con habilidades devuelve 40.000 al despedirlo, y 80.000 si muere en esas dos primeras jornadas.
 
 ### Patrocinadores dinamicos
 
@@ -265,8 +267,13 @@ scripts/               setup.sh, start.sh, install-server.sh, update-dns.sh, bac
 
 ```bash
 cd backend && .venv/bin/python -m pytest -q
+python scripts/simular-liga.py
 ```
 
-Cubren el calculo de VAE, el Fondo Menor, los desempates de la clasificacion, la asignacion de
-patrocinadores con colisiones, la Red de Seguridad de Novatos, el flujo completo del partido y las
-protecciones del panel de comisario.
+`simular-liga.py` juega las 7 jornadas de la liga de ejemplo (28 partidos) por la API y escribe
+el acta. Usa una base temporal, asi que no toca `backend/liga.db`. La semilla es fija: el mismo
+campeon sale cada vez.
+
+Los tests cubren el calculo de VAE, el Fondo Menor, los desempates de la clasificacion, la
+asignacion de patrocinadores con colisiones, la Red de Seguridad de Novatos, el flujo completo del
+partido, una temporada entera y las protecciones del panel de comisario.
