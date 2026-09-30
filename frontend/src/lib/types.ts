@@ -77,6 +77,7 @@ export interface TeamSummary {
   logo: string;
   treasury: number;
   ctv: number;
+  fans: number;
   current_sponsor_id: number | null;
   current_sponsor: Sponsor | null;
 }
@@ -221,6 +222,15 @@ export interface MatchDetail {
   away_winnings: number;
   home_winnings_roll: number | null;
   away_winnings_roll: number | null;
+  home_fans_roll: number | null;
+  away_fans_roll: number | null;
+  home_fans_before: number | null;
+  away_fans_before: number | null;
+  home_fans_after: number | null;
+  away_fans_after: number | null;
+  home_gold_discarded: number;
+  away_gold_discarded: number;
+  conceded_by_team_id: number | null;
   home_mvp_player_id: number | null;
   away_mvp_player_id: number | null;
   inducements: Inducement[];
@@ -234,6 +244,20 @@ export interface CompletionReport {
   match_id: number;
   home_winnings: number;
   away_winnings: number;
+  home_winnings_roll: number | null;
+  away_winnings_roll: number | null;
+  home_discarded: number;
+  away_discarded: number;
+  home_fans_before: number;
+  home_fans_after: number;
+  home_fans_roll: number | null;
+  away_fans_before: number;
+  away_fans_after: number;
+  away_fans_roll: number | null;
+  home_winner_bonus: number;
+  away_winner_bonus: number;
+  conceded_by_team_id: number | null;
+  tavern: string[];
   injuries: { player_name: string; team_id: number; result: string; effect: string }[];
   rookie_safety_payouts: {
     team_name: string;

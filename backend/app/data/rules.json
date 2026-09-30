@@ -233,7 +233,12 @@
   "post_match": {
     "winnings_dice": "D6",
     "winnings_multiplier": 10000,
-    "text": "Al cerrar el acta cada equipo tira 1D6 y multiplica por 10.000 monedas de oro de ganancias. Despues se elige el MVP (4 SPP) y se procesan las lesiones."
+    "fans_dice": "2D6",
+    "treasury_cap": 150000,
+    "fan_min": 1,
+    "fan_max": 7,
+    "fan_purchase_max": 3,
+    "text": "Al cerrar el acta cada equipo tira 1D6 y le suma sus hinchas dedicados. El ganador suma ademas 1. El total se multiplica por 10.000 y entra en la tesoreria. Si la tesoreria pasa de 150.000, se queda en 150.000 y el exceso se lo gastan en la taberna. Despues los hinchas cambian con un 2D6: el ganador sube si saca su aficion o mas, el perdedor baja si saca su aficion o menos, y en un empate sube si saca mas y baja si saca menos. Nunca bajan de 1 ni suben de 7. Si un equipo concede, se lleva 0 de oro, no cobra el MVP y pierde 1 hincha. El rival se lleva las dos tiradas de oro y los 8 SPP de los dos MVP."
   },
   "sponsors": [
     {

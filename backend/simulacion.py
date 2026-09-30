@@ -46,6 +46,7 @@ class Caja:
     despido: int = 0
     fichaje: int = 0
     recompensa: int = 0
+    taberna: int = 0
 
     @property
     def delta(self) -> int:
@@ -58,7 +59,7 @@ class Caja:
 
     @property
     def explicado(self) -> int:
-        return self.ganancias + self.recompensa + self.plantilla
+        return self.ganancias + self.recompensa + self.plantilla - self.taberna
 
 
 @dataclass
@@ -92,6 +93,7 @@ class Acta:
     despidos: list[str]
     fichajes: list[str]
     tesoreria: list[str]
+    economia: list[str]
     cajas: list[Caja]
     sponsors: list[str]
 
@@ -123,6 +125,9 @@ def sembrar() -> dict[str, str]:
 
 
 def simular(client: TestClient, semilla: int = SEMILLA) -> Temporada:
+    # La aficion se tira en el servidor con el modulo random. Sembrarla aqui
+    # deja el acta repetible sin tocar el generador de los eventos del partido.
+    random.seed(semilla)
     rng = random.Random(semilla)
     pins = sembrar()
     temporada = Temporada(semilla=semilla)
@@ -365,6 +370,11 @@ def _jugar(
 
     tesoreria = []
     cajas: list[Caja] = []
+    economia = _lineas_economia(home_name, away_name, informe)
+    descartes = {
+        home_name: int(informe.get("home_discarded") or 0),
+        away_name: int(informe.get("away_discarded") or 0),
+    }
     for team_id, team_name, ganancias in (
         (home_id, home_name, informe["home_winnings"]),
         (away_id, away_name, informe["away_winnings"]),
@@ -380,6 +390,7 @@ def _jugar(
             despido=cifras[team_name]["despido"],
             fichaje=cifras[team_name]["fichaje"],
             recompensa=recompensa_oro if team_name == recompensa_equipo else 0,
+            taberna=descartes[team_name],
         )
         cajas.append(caja)
         signo = "+" if caja.delta >= 0 else ""
@@ -424,6 +435,7 @@ def _jugar(
         despidos=despidos,
         fichajes=fichajes,
         tesoreria=tesoreria,
+        economia=economia,
         cajas=cajas,
         sponsors=[
             f"{item['sponsor_name']} → {item['team_name']}"
@@ -462,11 +474,14 @@ def formatear(temporada: Temporada) -> str:
         if acta.injuries:
             lineas.append("    Heridos: " + "; ".join(acta.injuries) + ".")
         lineas.append(f"    MVP: {acta.mvp_home} y {acta.mvp_away}.")
-        lineas.append(
-            f"    Oro: {acta.home} {_oro(acta.home_winnings)} de ganancias, "
-            f"{acta.away} {_oro(acta.away_winnings)} de ganancias."
-        )
-        for extra in (*acta.mercy, *([acta.bounty] if acta.bounty else []), *acta.despidos, *acta.fichajes, *acta.tesoreria):
+        for extra in (
+            *acta.economia,
+            *acta.mercy,
+            *([acta.bounty] if acta.bounty else []),
+            *acta.despidos,
+            *acta.fichajes,
+            *acta.tesoreria,
+        ):
             lineas.append(f"    {extra}")
         if indice == len(temporada.actas) - 1 or temporada.actas[indice + 1].round_number != jornada_actual:
             if jornada_actual == len(temporada.jornadas):
@@ -496,32 +511,46 @@ def _balance(temporada: Temporada) -> list[str]:
         for caja in acta.cajas:
             fila = totales.setdefault(
                 caja.team,
-                {"antes": caja.antes, "despues": caja.despues, "ganancias": 0, "recompensa": 0, "plantilla": 0},
+                {
+                    "antes": caja.antes,
+                    "despues": caja.despues,
+                    "ganancias": 0,
+                    "recompensa": 0,
+                    "plantilla": 0,
+                    "taberna": 0,
+                },
             )
             fila["despues"] = caja.despues
             fila["ganancias"] += caja.ganancias
             fila["recompensa"] += caja.recompensa
             fila["plantilla"] += caja.plantilla
+            fila["taberna"] += caja.taberna
 
     lineas = [
-        "    Equipo                      Inicio     Final   Ganancias  Recompensa  Plantilla",
+        "    Equipo                      Inicio     Final   Ganancias  Recompensa  Plantilla     Taberna",
     ]
-    suma_ganancias = suma_recompensa = suma_plantilla = 0
+    suma_ganancias = suma_recompensa = suma_plantilla = suma_taberna = 0
     for nombre in sorted(totales, key=lambda n: -totales[n]["despues"]):
         fila = totales[nombre]
         suma_ganancias += fila["ganancias"]
         suma_recompensa += fila["recompensa"]
         suma_plantilla += fila["plantilla"]
+        suma_taberna += fila["taberna"]
         lineas.append(
             f"    {nombre:<26} {_oro(fila['antes']):>10} {_oro(fila['despues']):>10}"
-            f" {_oro(fila['ganancias']):>11} {_oro(fila['recompensa']):>11} {_oro(fila['plantilla']):>10}"
+            f" {_oro(fila['ganancias']):>11} {_oro(fila['recompensa']):>11}"
+            f" {_oro(fila['plantilla']):>10} {_oro(fila['taberna']):>11}"
         )
     lineas.append(
         f"    {'Total':<26} {'':>10} {'':>10}"
-        f" {_oro(suma_ganancias):>11} {_oro(suma_recompensa):>11} {_oro(suma_plantilla):>10}"
+        f" {_oro(suma_ganancias):>11} {_oro(suma_recompensa):>11}"
+        f" {_oro(suma_plantilla):>10} {_oro(suma_taberna):>11}"
     )
     lineas.append(
         "    Plantilla = oro de muertes + oro de despidos - coste de los fichajes que los sustituyen."
+    )
+    lineas.append(
+        "    Taberna = oro que se descarta cuando la tesoreria pasa de 150.000 al cobrar el partido."
     )
     return lineas
 
@@ -644,6 +673,49 @@ def _nombre_tirada(entrada: Optional[dict[str, Any]], valor: Optional[int]) -> s
 
 def _equipo(team_id: int, home_id: int, home_name: str, away_name: str) -> str:
     return home_name if team_id == home_id else away_name
+
+
+def _lineas_economia(home_name: str, away_name: str, informe: dict[str, Any]) -> list[str]:
+    """Como se ha calculado el oro y como se han movido los hinchas."""
+    lineas = []
+    lados = (
+        (
+            home_name,
+            informe["home_winnings"],
+            informe.get("home_winner_bonus") or 0,
+            informe.get("home_fans_before"),
+            informe.get("home_fans_after"),
+            informe.get("home_fans_roll"),
+            informe.get("home_discarded") or 0,
+            informe.get("home_winnings_roll"),
+        ),
+        (
+            away_name,
+            informe["away_winnings"],
+            informe.get("away_winner_bonus") or 0,
+            informe.get("away_fans_before"),
+            informe.get("away_fans_after"),
+            informe.get("away_fans_roll"),
+            informe.get("away_discarded") or 0,
+            informe.get("away_winnings_roll"),
+        ),
+    )
+    # El informe de cierre no repite la tirada de 1D6: esta en el acta del partido.
+    for nombre, oro, bono, antes, despues, dado, taberna, tirada, *_resto in lados:
+        extra = " +1 victoria" if bono else ""
+        cara = f"={tirada}" if tirada is not None else ""
+        hinchas = f"{antes} hinchas" if antes is not None else "hinchas"
+        linea = f"Oro de {nombre}: (1D6{cara}{extra} + {hinchas}) × 10.000 = {_oro(oro)}."
+        if taberna:
+            linea += (
+                f" La taberna se queda {_oro(taberna)}: "
+                "tus jugadores se han gastado el exceso de oro en la taberna local."
+            )
+        lineas.append(linea)
+        if antes is not None and despues is not None:
+            tirada = f" (2D6 = {dado})" if dado is not None else ""
+            lineas.append(f"Hinchas de {nombre}: {antes} → {despues}{tirada}.")
+    return lineas
 
 
 def _oro(cantidad: int) -> str:

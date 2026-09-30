@@ -147,19 +147,38 @@ def test_flujo_completo_de_partido(client, session, duel):
     response = client.post(
         f"/api/matches/{match.id}/complete",
         headers=headers,
-        json={"home_mvp_player_id": scorer.id, "home_winnings_roll": 4, "away_winnings_roll": 2},
+        json={
+            "home_mvp_player_id": scorer.id,
+            "home_winnings_roll": 4,
+            "away_winnings_roll": 2,
+            "home_fans_roll": 9,
+            "away_fans_roll": 3,
+        },
     )
     report = response.json()
-    assert report["home_winnings"] == 40_000
-    assert report["away_winnings"] == 20_000
+    # Hinchas de partida: 5. Ganador (4+1+5)×10.000. Perdedor (2+5)×10.000.
+    assert report["home_winnings"] == 100_000
+    assert report["away_winnings"] == 70_000
+    assert report["home_winner_bonus"] == 1
+    assert report["away_winner_bonus"] == 0
+    # 100.000 + 100.000 y 100.000 + 70.000 pasan de 150.000: la taberna se queda el exceso.
+    assert report["home_discarded"] == 50_000
+    assert report["away_discarded"] == 20_000
+    assert report["tavern"]
     assert report["injuries"][0]["result"] == "SERIOUSLY_HURT"
 
     session.refresh(scorer)
     session.refresh(victim)
     session.refresh(match)
+    session.refresh(duel["home"])
+    session.refresh(duel["away"])
     assert scorer.spp == 9  # +4 del MVP
     assert victim.status == PlayerStatus.MNG
     assert match.status == MatchStatus.COMPLETED
+    assert duel["home"].fans == 6  # 2D6 = 9, mayor que 5
+    assert duel["away"].fans == 4  # 2D6 = 3, menor o igual que 5
+    assert duel["home"].treasury == 150_000
+    assert duel["away"].treasury == 150_000
 
     standings = client.get("/api/league/standings").json()
     assert standings[0]["team_name"] == "Reavers"
@@ -321,8 +340,9 @@ def test_mercy_rule_compensa_la_muerte_en_jornada_1(client, session, duel):
     assert [p["gold"] for p in payouts] == [50_000, 25_000]
 
     session.refresh(duel["away"])
-    # 10.000 de ganancias + 50.000 + 25.000 de la red de seguridad
-    assert duel["away"].treasury == treasury_before + 10_000 + 75_000
+    # Empate, tirada 1 y 5 hinchas: 60.000. El tope deja 150.000 y la red suma 75.000.
+    assert treasury_before == 100_000
+    assert duel["away"].treasury == 150_000 + 75_000
     for victim in victims:
         session.refresh(victim)
         assert victim.status == PlayerStatus.DEAD
@@ -386,7 +406,8 @@ def test_la_lesion_de_por_vida_no_paga_la_red_de_seguridad(client, session, duel
     ).json()
     assert report["rookie_safety_payouts"] == []
     session.refresh(duel["away"])
-    assert duel["away"].treasury == treasury_before + 10_000
+    # Empate, tirada 1 y 5 hinchas: 60.000. 100.000 + 60.000 se queda en el tope.
+    assert duel["away"].treasury == 150_000
 
 
 def test_la_muerte_de_un_mejorado_devuelve_el_valor_actual(client, session, duel):
@@ -422,7 +443,8 @@ def test_la_muerte_de_un_mejorado_devuelve_el_valor_actual(client, session, duel
     assert report["rookie_safety_payouts"][0]["gold"] == 80_000
     assert report["rookie_safety_payouts"][0]["percentage"] == 100
     session.refresh(duel["away"])
-    assert duel["away"].treasury == treasury_before + 10_000 + 80_000
+    # El tope recorta las ganancias a 150.000 y la muerte suma los 80.000 despues.
+    assert duel["away"].treasury == 150_000 + 80_000
 
 
 def test_despedir_a_un_lesionado_devuelve_solo_el_coste_base(client, session, duel):
@@ -645,3 +667,97 @@ def test_proximo_partido_del_equipo(client, duel):
     body = client.get("/api/matches/next", params={"team_id": duel["home"].id}).json()
     assert body["id"] == duel["match"].id
     assert body["away_team_name"] == "Gouged Eye"
+
+
+def test_ganancias_con_un_hincha_no_tocan_el_tope(client, session):
+    home = make_team(session, "Pocos", pin="1111", fans=1, treasury=10_000)
+    away = make_team(session, "Otros", pin="2222", fans=1, treasury=10_000)
+    add_players(session, home, 11, value=50_000)
+    add_players(session, away, 11, value=40_000)
+    match = make_match(session, home, away, 1)
+    ensure_state(session, current_round=1, total_rounds=7)
+    headers = _reach_pre_match(client, {"home": home, "away": away, "match": match})
+    client.post(f"/api/matches/{match.id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match.id}/start", headers=headers)
+    scorer = session.exec(select(Player).where(Player.team_id == home.id)).first()
+    client.post(
+        f"/api/matches/{match.id}/events",
+        headers=headers,
+        json={"team_id": home.id, "event_type": "TD", "player_id": scorer.id},
+    )
+    report = client.post(
+        f"/api/matches/{match.id}/complete",
+        headers=headers,
+        json={
+            "home_winnings_roll": 3,
+            "away_winnings_roll": 2,
+            "home_fans_roll": 7,
+            "away_fans_roll": 8,
+        },
+    ).json()
+    assert report["home_winnings"] == 50_000  # (3 + 1 + 1) × 10.000
+    assert report["away_winnings"] == 30_000  # (2 + 1) × 10.000
+    assert report["home_discarded"] == 0
+    assert report["away_discarded"] == 0
+    session.refresh(home)
+    session.refresh(away)
+    assert home.treasury == 60_000
+    assert away.treasury == 40_000
+    assert home.fans == 2
+    assert away.fans == 1
+
+
+def test_concesion_pasa_el_oro_y_el_mvp_al_rival(client, session, duel):
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+    home_player = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    away_player = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    report = client.post(
+        f"/api/matches/{match_id}/complete",
+        headers=headers,
+        json={
+            "conceded_by_team_id": duel["home"].id,
+            "home_mvp_player_id": home_player.id,
+            "away_mvp_player_id": away_player.id,
+            "home_winnings_roll": 4,
+            "away_winnings_roll": 3,
+            "away_fans_roll": 10,
+        },
+    ).json()
+    # Local concede: su tirada (4+5 hinchas) y la del rival (3+1+5) se las queda el visitante.
+    assert report["home_winnings"] == 0
+    assert report["away_winnings"] == 180_000
+    assert report["home_fans_roll"] is None
+    assert report["home_fans_after"] == 4
+    assert report["away_fans_after"] == 6
+    session.refresh(home_player)
+    session.refresh(away_player)
+    session.refresh(duel["home"])
+    session.refresh(duel["away"])
+    assert home_player.spp == 0
+    assert away_player.spp == 8
+    assert duel["home"].treasury == 100_000
+    assert duel["away"].treasury == 150_000
+    assert report["away_discarded"] == 130_000
+
+
+def test_no_se_compran_mas_de_tres_hinchas(client, session):
+    team = make_team(session, "Aficion", pin="1111", fans=1, treasury=100_000)
+    headers = auth(client, team.id, "1111")
+    for esperado in (2, 3):
+        response = client.post(
+            f"/api/teams/{team.id}/staff",
+            headers=headers,
+            json={"item": "FAN", "quantity": 1},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["fans"] == esperado
+    response = client.post(
+        f"/api/teams/{team.id}/staff",
+        headers=headers,
+        json={"item": "FAN", "quantity": 1},
+    )
+    assert response.status_code == 400
+    assert "hasta 3" in response.json()["detail"]

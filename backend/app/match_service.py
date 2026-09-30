@@ -410,47 +410,25 @@ def complete_match(
     if home is None or away is None:
         raise NotFoundError("Equipo no encontrado.")
 
-    post = rules.post_match_config()
-    multiplier = int(post.get("winnings_multiplier", 10_000))
+    if req.conceded_by_team_id is not None:
+        require_participant(match, req.conceded_by_team_id)
 
-    # 1. Ganancias: D6 x 10.000 mo
-    home_roll = req.home_winnings_roll if req.home_winnings_roll is not None else league_engine.roll_d6(rng)
-    away_roll = req.away_winnings_roll if req.away_winnings_roll is not None else league_engine.roll_d6(rng)
-    for label, value in (("local", home_roll), ("visitante", away_roll)):
-        if not 1 <= value <= 6:
-            raise LeagueError(f"La tirada de ganancias del equipo {label} debe estar entre 1 y 6.")
+    # 1. MVP. Quien concede no cobra el suyo: el rival se lleva los 8 SPP.
+    _award_mvps(session, match, home, away, req)
 
-    match.home_winnings_roll = home_roll
-    match.away_winnings_roll = away_roll
-    match.home_winnings = home_roll * multiplier
-    match.away_winnings = away_roll * multiplier
-    home.treasury += match.home_winnings
-    away.treasury += match.away_winnings
-
-    # 2. MVP: 4 SPP
-    mvp_spp = rules.spp_for("MVP")
-    for team, player_id, field in (
-        (home, req.home_mvp_player_id, "home_mvp_player_id"),
-        (away, req.away_mvp_player_id, "away_mvp_player_id"),
-    ):
-        if player_id is None:
-            continue
-        player = session.get(Player, player_id)
-        if player is None or player.team_id != team.id:
-            raise LeagueError(f"El MVP indicado no pertenece a {team.name}.")
-        player.spp += mvp_spp
-        session.add(player)
-        setattr(match, field, player_id)
-        session.add(
-            MatchEvent(
-                match_id=match.id,
-                team_id=team.id,
-                player_id=player_id,
-                event_type=EventType.MVP,
-                spp_awarded=mvp_spp,
-                note="MVP del partido",
-            )
-        )
+    # 2. Ganancias segun hinchas, tope de tesoreria y fluctuacion de aficion.
+    home_economy, away_economy = league_engine.process_post_match_economy(
+        session,
+        match,
+        home,
+        away,
+        home_winnings_roll=req.home_winnings_roll,
+        away_winnings_roll=req.away_winnings_roll,
+        home_fans_roll=req.home_fans_roll,
+        away_fans_roll=req.away_fans_roll,
+        conceded_by_team_id=req.conceded_by_team_id,
+        rng=rng,
+    )
 
     # 3. Jugadores que ya cumplieron su sancion vuelven a estar disponibles
     recovered: list[dict[str, Any]] = []
@@ -558,16 +536,77 @@ def complete_match(
 
     assignments = _after_match_completed(session, match)
 
+    tavern = [
+        f"{side.team_name}: {league_engine.TAVERN_NOTE}"
+        for side in (home_economy, away_economy)
+        if side.discarded
+    ]
+
     return MatchCompletionReport(
         match_id=match.id or 0,
         home_winnings=match.home_winnings,
         away_winnings=match.away_winnings,
+        home_winnings_roll=home_economy.winnings_roll,
+        away_winnings_roll=away_economy.winnings_roll,
+        home_discarded=home_economy.discarded,
+        away_discarded=away_economy.discarded,
+        home_fans_before=home_economy.fans_before,
+        home_fans_after=home_economy.fans_after,
+        home_fans_roll=home_economy.fans_roll,
+        away_fans_before=away_economy.fans_before,
+        away_fans_after=away_economy.fans_after,
+        away_fans_roll=away_economy.fans_roll,
+        home_winner_bonus=home_economy.winner_bonus,
+        away_winner_bonus=away_economy.winner_bonus,
+        conceded_by_team_id=req.conceded_by_team_id,
+        tavern=tavern,
         injuries=injuries,
         rookie_safety_payouts=payouts,
         bounty_payout=bounty_payout,
         recovered_players=recovered,
         sponsors=assignments,
     )
+
+
+def _award_mvps(
+    session: Session,
+    match: Match,
+    home: Team,
+    away: Team,
+    req: CompleteMatchRequest,
+) -> None:
+    """4 SPP al MVP de cada equipo. Si alguien concede, el rival cobra los 8."""
+    mvp_spp = rules.spp_for("MVP")
+    conceded = req.conceded_by_team_id
+    awards: list[tuple[Team, Optional[int], str, int]] = []
+    if conceded == home.id:
+        awards.append((away, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp * 2))
+    elif conceded == away.id:
+        awards.append((home, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp * 2))
+    else:
+        awards.append((home, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp))
+        awards.append((away, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp))
+
+    for team, player_id, field, spp in awards:
+        if player_id is None:
+            continue
+        player = session.get(Player, player_id)
+        if player is None or player.team_id != team.id:
+            raise LeagueError(f"El MVP indicado no pertenece a {team.name}.")
+        player.spp += spp
+        session.add(player)
+        setattr(match, field, player_id)
+        note = "MVP del partido" if spp == mvp_spp else "MVP del partido y el del rival, que concedio"
+        session.add(
+            MatchEvent(
+                match_id=match.id,
+                team_id=team.id,
+                player_id=player_id,
+                event_type=EventType.MVP,
+                spp_awarded=spp,
+                note=note,
+            )
+        )
 
 
 def _after_match_completed(session: Session, match: Match):

@@ -250,6 +250,57 @@ def test_recalculo_regenera_marcadores_desde_los_eventos(session):
     assert report["matches_fixed"][0]["after"] == "2-1"
 
 
+def test_ganancias_suman_hinchas_y_el_bono_de_victoria():
+    oro, bono = league_engine.winnings_formula(4, 3, "win")
+    assert bono == 1
+    assert oro == 80_000  # (4 + 1 + 3) × 10.000
+    oro_empate, bono_empate = league_engine.winnings_formula(4, 3, "draw")
+    assert bono_empate == 0
+    assert oro_empate == 70_000
+    oro_pierde, _ = league_engine.winnings_formula(4, 3, "loss")
+    assert oro_pierde == 70_000
+
+
+def test_la_aficion_se_mueve_con_el_2d6_y_no_sale_de_1_a_7():
+    assert league_engine.next_dedicated_fans(5, "win", 5) == 6
+    assert league_engine.next_dedicated_fans(5, "win", 4) == 5
+    assert league_engine.next_dedicated_fans(7, "win", 12) == 7
+    assert league_engine.next_dedicated_fans(3, "loss", 3) == 2
+    assert league_engine.next_dedicated_fans(3, "loss", 4) == 3
+    assert league_engine.next_dedicated_fans(1, "loss", 1) == 1
+    assert league_engine.next_dedicated_fans(1, "concede", None) == 1
+    assert league_engine.next_dedicated_fans(4, "concede", None) == 3
+    assert league_engine.next_dedicated_fans(4, "draw", 5) == 5
+    assert league_engine.next_dedicated_fans(4, "draw", 3) == 3
+    assert league_engine.next_dedicated_fans(4, "draw", 4) == 4
+
+
+def test_el_cierre_economico_respeta_el_tope_y_el_orden(session):
+    home = make_team(session, "Local", fans=2, treasury=140_000)
+    away = make_team(session, "Visitante", fans=1, treasury=20_000)
+    match = make_match(session, home, away, 1, home_td=2, away_td=1)
+    home_side, away_side = league_engine.process_post_match_economy(
+        session,
+        match,
+        home,
+        away,
+        home_winnings_roll=3,
+        away_winnings_roll=6,
+        home_fans_roll=8,
+        away_fans_roll=2,
+    )
+    # Ganador: (3+1+2)×10.000 = 60.000. 140.000 + 60.000 se queda en 150.000.
+    assert home_side.winnings == 60_000
+    assert home_side.discarded == 50_000
+    assert home.treasury == 150_000
+    assert home.fans == 3  # 8 >= 2
+    # Perdedor: (6+1)×10.000 = 70.000. 20.000 + 70.000 no llega al tope.
+    assert away_side.winnings == 70_000
+    assert away_side.discarded == 0
+    assert away.treasury == 90_000
+    assert away.fans == 1  # 2 <= 1 es falso, no baja
+
+
 def test_ultima_jornada_completa(session):
     alpha = make_team(session, "Alpha")
     beta = make_team(session, "Beta")

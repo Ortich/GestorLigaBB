@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import List, Optional
 
+from pydantic import field_validator
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -136,7 +137,7 @@ class Team(SQLModel, table=True):
     assistant_coaches: int = 0
     cheerleaders: int = 0
     apothecary: bool = False
-    fans: int = 1  # Hinchas dedicados: no suman a la VAE
+    fans: int = 1  # Hinchas dedicados: no suman a la VAE. Siempre entre 1 y 7.
     current_sponsor_id: Optional[int] = Field(default=None, foreign_key="sponsor.id")
     sponsor_preference: str = ""  # Codigos separados por coma, para resolver colisiones
     rookie_safety_claims: int = 0  # Bajas permanentes ya compensadas (Mercy Rule)
@@ -147,6 +148,13 @@ class Team(SQLModel, table=True):
         back_populates="team",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+
+    @field_validator("fans")
+    @classmethod
+    def _hinchas_entre_1_y_7(cls, value: int) -> int:
+        if value < 1 or value > 7:
+            raise ValueError("Los hinchas dedicados tienen que estar entre 1 y 7.")
+        return value
 
 
 class Player(SQLModel, table=True):
@@ -216,6 +224,15 @@ class Match(SQLModel, table=True):
     away_winnings_roll: Optional[int] = None
     home_winnings: int = 0
     away_winnings: int = 0
+    home_fans_roll: Optional[int] = None
+    away_fans_roll: Optional[int] = None
+    home_fans_before: Optional[int] = None
+    away_fans_before: Optional[int] = None
+    home_fans_after: Optional[int] = None
+    away_fans_after: Optional[int] = None
+    home_gold_discarded: int = 0
+    away_gold_discarded: int = 0
+    conceded_by_team_id: Optional[int] = Field(default=None, foreign_key="team.id")
     home_mvp_player_id: Optional[int] = Field(default=None, foreign_key="player.id")
     away_mvp_player_id: Optional[int] = Field(default=None, foreign_key="player.id")
 
