@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  @apply bg-pitch-950 text-stone-100 antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(36, 80, 56, 0.55), transparent 55%),
+    radial-gradient(circle at 85% 10%, rgba(156, 35, 29, 0.28), transparent 45%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/10 bg-pitch-900/80 p-4 shadow-card backdrop-blur;
+  }
+
+  .card-tight {
+    @apply rounded-xl border border-white/10 bg-pitch-900/70 p-3;
+  }
+
+  .btn {
+    @apply inline-flex min-h-[52px] items-center justify-center gap-2 rounded-xl px-4 text-base
+           font-semibold transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  .btn-primary {
+    @apply btn bg-blood-600 text-white hover:bg-blood-500;
+  }
+
+  .btn-secondary {
+    @apply btn border border-white/15 bg-white/5 text-stone-100 hover:bg-white/10;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold-500 text-pitch-950 hover:bg-gold-400;
+  }
+
+  .btn-ghost {
+    @apply btn text-stone-300 hover:bg-white/5;
+  }
+
+  .btn-sm {
+    @apply min-h-[40px] rounded-lg px-3 text-sm;
+  }
+
+  .input {
+    @apply min-h-[52px] w-full rounded-xl border border-white/15 bg-pitch-950/80 px-4 text-base
+           text-stone-100 outline-none placeholder:text-stone-500 focus:border-gold-500;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-400;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5
+           px-2.5 py-1 text-xs font-medium text-stone-300;
+  }
+
+  .stat-pill {
+    @apply flex h-9 w-9 flex-col items-center justify-center rounded-lg bg-pitch-800 text-sm font-bold;
+  }
+
+  .section-title {
+    @apply mb-3 flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-gold-400;
+  }
+}
+
+/* El teclado numerico del PIN no debe mostrar las flechas del input number */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}

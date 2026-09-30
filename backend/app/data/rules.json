@@ -1,0 +1,283 @@
+{
+  "edition": "Blood Bowl 2020",
+  "weather": {
+    "title": "Tabla de Clima",
+    "dice": "2D6",
+    "entries": [
+      {
+        "roll": "2",
+        "min": 2,
+        "max": 2,
+        "name": "Calor Sofocante",
+        "text": "Al final de cada parte, tira 1D6 por cada jugador que estuviese en el campo al terminar la parte. Con un resultado de 1, el jugador se retira Aturdido a la zona de reservas por agotamiento."
+      },
+      {
+        "roll": "3",
+        "min": 3,
+        "max": 3,
+        "name": "Muy Soleado",
+        "text": "El resplandor del sol dificulta los pases: aplica un modificador de -1 a cualquier accion de Pase."
+      },
+      {
+        "roll": "4-10",
+        "min": 4,
+        "max": 10,
+        "name": "Condiciones Perfectas",
+        "text": "Nada fuera de lo normal. El partido se juega sin modificadores por clima."
+      },
+      {
+        "roll": "11",
+        "min": 11,
+        "max": 11,
+        "name": "Lluvia Torrencial",
+        "text": "El balon esta resbaladizo: aplica un modificador de -1 a cualquier accion de Recoger o Atrapar el balon."
+      },
+      {
+        "roll": "12",
+        "min": 12,
+        "max": 12,
+        "name": "Ventisca",
+        "text": "Aplica -1 a cualquier tirada de Esquivar en la que el jugador entre en una casilla cubierta de nieve (todas). Ademas, solo se pueden realizar Pases Rapidos y Cortos."
+      }
+    ]
+  },
+  "kick_off": {
+    "title": "Tabla de Patada Inicial",
+    "dice": "2D6",
+    "entries": [
+      {
+        "roll": "2",
+        "min": 2,
+        "max": 2,
+        "name": "A por el Arbitro",
+        "text": "Ambos equipos reciben un Soborno gratuito para este partido."
+      },
+      {
+        "roll": "3",
+        "min": 3,
+        "max": 3,
+        "name": "Tiempo Muerto",
+        "text": "Si el marcador de turno del equipo que patea esta en 6, 7 u 8, ambos equipos retrasan su marcador de turno una casilla. En caso contrario, ambos equipos ganan una Reorganizacion en Equipo para esta parte."
+      },
+      {
+        "roll": "4",
+        "min": 4,
+        "max": 4,
+        "name": "Defensa Solida",
+        "text": "El entrenador que patea tira D3+3 y puede reorganizar a ese numero de sus jugadores, respetando las reglas de preparacion."
+      },
+      {
+        "roll": "5",
+        "min": 5,
+        "max": 5,
+        "name": "Patada Alta",
+        "text": "El entrenador que recibe puede mover a un jugador abierto hasta 3 casillas para colocarlo bajo la trayectoria del balon."
+      },
+      {
+        "roll": "6",
+        "min": 6,
+        "max": 6,
+        "name": "Aficion Entregada",
+        "text": "Cada entrenador tira D3 y suma sus Hinchas Dedicados. El de mayor resultado gana una Plegaria a Nuffle (tira 1D16)."
+      },
+      {
+        "roll": "7",
+        "min": 7,
+        "max": 7,
+        "name": "Entrenamiento Brillante",
+        "text": "Cada entrenador tira D3 y suma sus Ayudantes de Entrenador. El de mayor resultado gana una Reorganizacion en Equipo gratuita."
+      },
+      {
+        "roll": "8",
+        "min": 8,
+        "max": 8,
+        "name": "Cambio de Clima",
+        "text": "Vuelve a tirar en la Tabla de Clima. Si el nuevo resultado es Condiciones Perfectas, el balon se desvia una casilla extra antes de caer."
+      },
+      {
+        "roll": "9",
+        "min": 9,
+        "max": 9,
+        "name": "Saque Rapido",
+        "text": "El entrenador que recibe tira D3+3 y puede mover a ese numero de jugadores abiertos una casilla."
+      },
+      {
+        "roll": "10",
+        "min": 10,
+        "max": 10,
+        "name": "Blitz!",
+        "text": "El entrenador que patea tira D3+3 y activa a ese numero de jugadores abiertos, pudiendo realizar una Accion de Blitz gratuita con uno de ellos."
+      },
+      {
+        "roll": "11",
+        "min": 11,
+        "max": 11,
+        "name": "Arbitro Oficioso",
+        "text": "Cada entrenador tira 1D6, el que saque menos sufre la atencion del arbitro. Tira 1D6 por un jugador al azar: con 1 es expulsado, si no queda Aturdido."
+      },
+      {
+        "roll": "12",
+        "min": 12,
+        "max": 12,
+        "name": "Invasion de Campo",
+        "text": "Cada entrenador tira D3 y suma sus Hinchas Dedicados por cada jugador rival en el campo. Con 6+ el jugador queda Aturdido."
+      }
+    ]
+  },
+  "prayers_to_nuffle": {
+    "title": "Plegarias a Nuffle",
+    "dice": "1D16",
+    "entries": [
+      { "roll": "1", "min": 1, "max": 1, "name": "Trampilla Traicionera", "text": "Elige a un jugador rival abierto: cae por una trampilla y es retirado a las reservas." },
+      { "roll": "2", "min": 2, "max": 2, "name": "Amigos del Arbitro", "text": "Si el partido acaba en empate, el equipo con esta plegaria gana." },
+      { "roll": "3", "min": 3, "max": 3, "name": "Estilete", "text": "Un jugador al azar gana Puñalada durante este partido." },
+      { "roll": "4", "min": 4, "max": 4, "name": "Hombre de Hierro", "text": "Un jugador al azar gana +1 AV (hasta un maximo de 11+) durante este partido." },
+      { "roll": "5", "min": 5, "max": 5, "name": "Puños de Acero", "text": "Un jugador al azar gana Golpe Mortifero durante este partido." },
+      { "roll": "6", "min": 6, "max": 6, "name": "Malos Habitos", "text": "D3 jugadores rivales al azar ganan Cabeza Hueca durante este partido." },
+      { "roll": "7", "min": 7, "max": 7, "name": "Botas Engrasadas", "text": "Un jugador al azar gana +1 MA durante este partido." },
+      { "roll": "8", "min": 8, "max": 8, "name": "Estatua Bendita de Nuffle", "text": "Un jugador al azar gana Presion durante este partido." },
+      { "roll": "9", "min": 9, "max": 9, "name": "Topos bajo el Campo", "text": "Todos los jugadores rivales tratan el campo como Terreno Dificil al hacer Placajes." },
+      { "roll": "10", "min": 10, "max": 10, "name": "Pase Perfecto", "text": "Un jugador al azar gana Pase durante este partido." },
+      { "roll": "11", "min": 11, "max": 11, "name": "Interaccion con la Aficion", "text": "El equipo gana +D3 Hinchas Dedicados temporales para este partido." },
+      { "roll": "12", "min": 12, "max": 12, "name": "Violencia Necesaria", "text": "Un jugador al azar gana Luchador Sucio (+1) durante este partido." },
+      { "roll": "13", "min": 13, "max": 13, "name": "Frenesi de Faltas", "text": "Todos los jugadores del equipo ganan Luchador Sucio (+1) durante este partido." },
+      { "roll": "14", "min": 14, "max": 14, "name": "Lanzar una Piedra", "text": "La aficion lanza una piedra a un jugador rival al azar en el campo: queda Aturdido." },
+      { "roll": "15", "min": 15, "max": 15, "name": "Bajo Escrutinio", "text": "Los jugadores rivales que cometan Falta son expulsados con 1 o 2 en la tirada de deteccion." },
+      { "roll": "16", "min": 16, "max": 16, "name": "Entrenamiento Intensivo", "text": "Un jugador al azar gana una habilidad Primaria elegida gratuitamente para este partido." }
+    ]
+  },
+  "casualty_table": {
+    "title": "Tabla de Heridas",
+    "dice": "D16",
+    "entries": [
+      { "code": "BADLY_HURT", "roll": "1-6", "name": "Magullado", "text": "El jugador se recupera sin secuelas. Vuelve a las reservas." },
+      { "code": "SERIOUSLY_HURT", "roll": "7-9", "name": "Herido de Gravedad", "text": "El jugador se pierde el proximo partido (MNG)." },
+      { "code": "SERIOUS_INJURY", "roll": "10-12", "name": "Lesion Grave", "text": "El jugador se pierde el proximo partido (MNG) y gana una Lesion Persistente." },
+      { "code": "LASTING_INJURY_MA", "roll": "13", "name": "Pierna Rota (-1 MA)", "text": "El jugador pierde 1 punto de Movimiento de forma permanente y se pierde el proximo partido." },
+      { "code": "LASTING_INJURY_ST", "roll": "13", "name": "Musculo Destrozado (-1 ST)", "text": "El jugador pierde 1 punto de Fuerza de forma permanente y se pierde el proximo partido." },
+      { "code": "LASTING_INJURY_AG", "roll": "14", "name": "Nervio Pinzado (-1 AG)", "text": "La Agilidad del jugador empeora en 1 de forma permanente y se pierde el proximo partido." },
+      { "code": "LASTING_INJURY_PA", "roll": "15", "name": "Mano Machacada (-1 PA)", "text": "El Pase del jugador empeora en 1 de forma permanente y se pierde el proximo partido." },
+      { "code": "LASTING_INJURY_AV", "roll": "15", "name": "Cabeza Abollada (-1 AV)", "text": "La Armadura del jugador empeora en 1 de forma permanente y se pierde el proximo partido." },
+      { "code": "DEAD", "roll": "16", "name": "MUERTO", "text": "El jugador ha muerto. Se elimina de la plantilla de forma permanente." }
+    ]
+  },
+  "inducements": {
+    "title": "Catalogo de Incentivos",
+    "note": "El equipo con menor VAE recibe Fondo Menor igual a la diferencia de VAE. Solo puede gastarlo en este partido y el credito no gastado se pierde.",
+    "catalog": [
+      { "code": "BRIBE", "name": "Soborno", "cost": 100000, "max": 3, "icon": "\ud83d\udcb0", "text": "Antes de que el arbitro expulse a uno de tus jugadores, tira 1D6. Con 2+ el arbitro ignora la infraccion (el soborno se gasta igualmente con un 1)." },
+      { "code": "BLOODWEISER_KEG", "name": "Barril de Bloodweiser", "cost": 50000, "max": 2, "icon": "\ud83c\udf7a", "text": "Suma +1 a las tiradas para recuperar jugadores KO al final de cada parte (acumulable hasta +2)." },
+      { "code": "TEMP_CHEERLEADER", "name": "Animadora de Agencia", "cost": 20000, "max": 4, "icon": "\ud83d\udce3", "text": "Cuenta como una Animadora adicional durante este partido (Aficion Entregada)." },
+      { "code": "PART_TIME_COACH", "name": "Ayudante a Tiempo Parcial", "cost": 20000, "max": 4, "icon": "\ud83e\uddf0", "text": "Cuenta como un Ayudante de Entrenador adicional durante este partido (Entrenamiento Brillante)." },
+      { "code": "WEATHER_MAGE", "name": "Mago del Tiempo", "cost": 30000, "max": 1, "icon": "\ud83c\udf29\ufe0f", "text": "Antes de la patada inicial puedes repetir la tirada de la Tabla de Clima y elegir cual de los dos resultados se aplica." },
+      { "code": "EXTRA_TRAINING", "name": "Entrenamiento Extra (Reroll)", "cost": 100000, "max": 8, "icon": "\ud83d\udd01", "text": "Cada compra otorga una Segunda Oportunidad de equipo adicional para este partido." },
+      { "code": "WANDERING_APOTH", "name": "Apotecario Errante", "cost": 100000, "max": 2, "icon": "\u2695\ufe0f", "text": "Funciona como un Apotecario adicional durante este partido." },
+      { "code": "MORTUARY_ASSISTANT", "name": "Ayudante de Forense", "cost": 100000, "max": 1, "icon": "\u26b0\ufe0f", "text": "Permite repetir la tirada de heridas contra un jugador rival una vez por partido para intentar empeorar el resultado." },
+      { "code": "PLAGUE_DOCTOR", "name": "Doctor de la Peste", "cost": 100000, "max": 1, "icon": "\ud83e\udda0", "text": "Una vez por partido, permite repetir una tirada de heridas contra uno de tus jugadores." },
+      { "code": "RIOTOUS_ROOKIES", "name": "Novatos Alborotadores", "cost": 100000, "max": 1, "icon": "\ud83e\udd1c", "text": "Si tras la preparacion tienes menos de 11 jugadores disponibles, anade D3 Novatos gratuitos." },
+      { "code": "SPECIAL_PLAY", "name": "Jugada Especial (carta)", "cost": 100000, "max": 5, "icon": "\ud83c\udccf", "text": "Roba una carta de Jugada Especial del mazo elegido." },
+      { "code": "CHEF", "name": "Maestro Cocinero Halfling", "cost": 300000, "max": 1, "icon": "\ud83c\udf72", "text": "Al inicio de cada parte tira 3D6: por cada 4+ robas una Segunda Oportunidad al rival y ganas una." },
+      { "code": "WIZARD", "name": "Mago Itinerante", "cost": 150000, "max": 1, "icon": "\ud83e\uddd9", "text": "Una vez por partido, tras una patada, puedes lanzar Rayo o Bola de Fuego." },
+      { "code": "STAR_PLAYER", "name": "Jugador Estrella", "cost": 0, "max": 2, "icon": "\u2b50", "text": "Contrata a una estrella. Introduce manualmente el coste segun su ficha (un mismo Jugador Estrella no puede jugar para ambos equipos)." }
+    ]
+  },
+  "scoring": {
+    "win": 3,
+    "draw": 1,
+    "narrow_loss": 1,
+    "loss": 0,
+    "narrow_loss_margin": 1,
+    "tiebreakers": ["Puntos", "Diferencia de TD", "Diferencia de bajas causadas", "TD a favor"],
+    "text": "Victoria 3 puntos. Empate 1 punto. Derrota por 1 TD de diferencia 1 punto. Derrota por mas de 1 TD 0 puntos."
+  },
+  "spp": {
+    "TD": 3,
+    "CAS": 2,
+    "PASS": 1,
+    "INT": 2,
+    "DEFLECTION": 1,
+    "FOUL": 0,
+    "MVP": 4,
+    "text": "Touchdown 3 SPP, baja causada 2 SPP, pase completado 1 SPP, intercepcion 2 SPP, desvio 1 SPP, MVP 4 SPP."
+  },
+  "levels": [
+    { "name": "Novato", "min": 0, "max": 5 },
+    { "name": "Experimentado", "min": 6, "max": 15 },
+    { "name": "Veterano", "min": 16, "max": 30 },
+    { "name": "Estrella Emergente", "min": 31, "max": 50 },
+    { "name": "Estrella", "min": 51, "max": 75 },
+    { "name": "Super Estrella", "min": 76, "max": 110 },
+    { "name": "Leyenda", "min": 111, "max": 9999 }
+  ],
+  "advancements": [
+    { "code": "RANDOM_PRIMARY", "name": "Habilidad Primaria aleatoria", "spp": 3, "value": 10000 },
+    { "code": "CHOSEN_PRIMARY", "name": "Habilidad Primaria elegida / Secundaria aleatoria", "spp": 6, "value": 20000 },
+    { "code": "CHOSEN_SECONDARY", "name": "Habilidad Secundaria elegida", "spp": 12, "value": 40000 },
+    { "code": "STAT_MA_AV", "name": "+1 MA o +1 AV", "spp": 18, "value": 30000 },
+    { "code": "STAT_PA", "name": "+1 PA", "spp": 18, "value": 40000 },
+    { "code": "STAT_AG", "name": "+1 AG", "spp": 24, "value": 40000 },
+    { "code": "STAT_ST", "name": "+1 ST", "spp": 32, "value": 80000 }
+  ],
+  "ctv": {
+    "text": "La VAE (Valoracion Actual de Equipo) suma el valor de los jugadores ACTIVOS (excluye MNG y MUERTOS), las Segundas Oportunidades, los Ayudantes de Entrenador, las Animadoras y el Apotecario. La Tesoreria y los Hinchas Dedicados NO suman.",
+    "assistant_coach_cost": 10000,
+    "cheerleader_cost": 10000,
+    "apothecary_cost": 50000
+  },
+  "rookie_safety": {
+    "title": "Red de Seguridad de Novatos",
+    "last_round": 2,
+    "tiers": [100, 50, 25],
+    "text": "Exclusivo para las Jornadas 1 y 2. Si un jugador sufre una lesion permanente o muere, el equipo recibe en tesoreria el 100% de su valor la primera vez, el 50% la segunda y el 25% a partir de la tercera."
+  },
+  "post_match": {
+    "winnings_dice": "D6",
+    "winnings_multiplier": 10000,
+    "text": "Al cerrar el acta cada equipo tira 1D6 y multiplica por 10.000 monedas de oro de ganancias. Despues se elige el MVP (4 SPP) y se procesan las lesiones."
+  },
+  "sponsors": [
+    {
+      "code": "PRENSA_AMARILLA",
+      "name": "Prensa Amarilla",
+      "metric": "LAST_IN_TABLE",
+      "priority": 1,
+      "description": "Se asigna al ultimo clasificado de la liga.",
+      "benefit": "+1 Hincha Dedicado permanente y eliges quien patea al inicio del partido."
+    },
+    {
+      "code": "RINCON_TABERNERO",
+      "name": "El Rincon del Tabernero",
+      "metric": "WORST_TD_DIFF",
+      "priority": 2,
+      "description": "Se asigna al equipo con peor diferencial de touchdowns.",
+      "benefit": "+1 a las tiradas para recuperar jugadores KO y 1 Segunda Oportunidad gratuita por partido."
+    },
+    {
+      "code": "CARNICERIA_DA_BOYZ",
+      "name": "Carniceria Da Boyz",
+      "metric": "MOST_CAS",
+      "priority": 3,
+      "description": "Se asigna al equipo que mas bajas ha causado.",
+      "benefit": "+20.000 monedas de oro si causas 2 o mas bajas en el partido."
+    },
+    {
+      "code": "SINDICATO_MALHECHORES",
+      "name": "Sindicato de Malhechores",
+      "metric": "MOST_FOULS",
+      "priority": 4,
+      "description": "Se asigna al equipo que mas faltas ha cometido.",
+      "benefit": "1 Soborno gratuito por partido."
+    }
+  ],
+  "sponsor_rules": {
+    "first_round": 3,
+    "text": "Los patrocinadores se evaluan al final de cada jornada a partir de la Jornada 3. Cada patrocinador se asigna a un unico equipo. Si un equipo lidera dos metricas debe quedarse solo con uno y el otro pasa al siguiente del ranking; el equipo mas bajo en la tabla elige primero."
+  },
+  "bounties": [
+    { "code": "PRIMERA_SANGRE", "name": "Primera Sangre", "reward_gold": 20000, "description": "El primer equipo de la jornada que cause una baja se lleva 20.000 mo extra." },
+    { "code": "SHOWTIME", "name": "Showtime", "reward_gold": 20000, "description": "Si completas 3 o mas pases en el partido, +20.000 mo." },
+    { "code": "GOLEADA", "name": "Goleada", "reward_gold": 30000, "description": "Anota 3 o mas touchdowns en un mismo partido y llevate 30.000 mo." },
+    { "code": "JUEGO_LIMPIO", "name": "Juego Limpio", "reward_gold": 20000, "description": "Gana el partido sin cometer ninguna falta y recibe 20.000 mo." },
+    { "code": "CAZARRECOMPENSAS", "name": "Cazarrecompensas", "reward_gold": 30000, "description": "Deja fuera de combate al jugador mas valioso del rival y cobra 30.000 mo." }
+  ]
+}
