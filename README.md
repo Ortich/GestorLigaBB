@@ -126,9 +126,11 @@ Desempates por este orden: diferencia de TD, diferencia de bajas causadas y TD a
 
 ### Red de Seguridad de Novatos
 
-Solo en las jornadas 1 y 2. Cuando un jugador muere o sufre una lesion permanente, su equipo
-recibe en tesoreria el 100 % de su valor la primera vez, el 50 % la segunda y el 25 % a partir de
-la tercera.
+Solo en las jornadas 1 y 2, y solo si el jugador muere. El equipo recibe el 100 % de su valor
+actual (coste mas mejoras) la primera vez, el 50 % la segunda y el 25 % a partir de la tercera.
+Una lesion de por vida no paga sola: el jugador sigue en la plantilla. Si se le despide, la
+tesoreria recupera unicamente su coste base, sin las mejoras. Un zombi de 40.000 que vale 80.000
+con habilidades devuelve 40.000 al despedirlo, y 80.000 si muere en esas dos primeras jornadas.
 
 ### Patrocinadores dinamicos
 

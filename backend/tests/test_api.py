@@ -359,6 +359,119 @@ def test_sin_mercy_rule_a_partir_de_la_jornada_3(client, session, duel):
     assert report["rookie_safety_payouts"] == []
 
 
+def test_la_lesion_de_por_vida_no_paga_la_red_de_seguridad(client, session, duel):
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+
+    killer = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    victim = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    treasury_before = duel["away"].treasury
+    client.post(
+        f"/api/matches/{match_id}/events",
+        headers=headers,
+        json={
+            "team_id": duel["home"].id,
+            "event_type": "CAS",
+            "player_id": killer.id,
+            "victim_player_id": victim.id,
+            "casualty_result": "LASTING_INJURY_ST",
+        },
+    )
+    report = client.post(
+        f"/api/matches/{match_id}/complete",
+        headers=headers,
+        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+    ).json()
+    assert report["rookie_safety_payouts"] == []
+    session.refresh(duel["away"])
+    assert duel["away"].treasury == treasury_before + 10_000
+
+
+def test_la_muerte_de_un_mejorado_devuelve_el_valor_actual(client, session, duel):
+    """Zombi de 40.000 mejorado hasta 80.000: si muere en la jornada 1 vuelven los 80.000."""
+    victim = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    victim.cost = 40_000
+    victim.current_value = 80_000
+    session.add(victim)
+    session.commit()
+    treasury_before = duel["away"].treasury
+
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+    killer = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    client.post(
+        f"/api/matches/{match_id}/events",
+        headers=headers,
+        json={
+            "team_id": duel["home"].id,
+            "event_type": "CAS",
+            "player_id": killer.id,
+            "victim_player_id": victim.id,
+            "casualty_result": "DEAD",
+        },
+    )
+    report = client.post(
+        f"/api/matches/{match_id}/complete",
+        headers=headers,
+        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+    ).json()
+    assert report["rookie_safety_payouts"][0]["gold"] == 80_000
+    assert report["rookie_safety_payouts"][0]["percentage"] == 100
+    session.refresh(duel["away"])
+    assert duel["away"].treasury == treasury_before + 10_000 + 80_000
+
+
+def test_despedir_a_un_lesionado_devuelve_solo_el_coste_base(client, session, duel):
+    """El mismo zombi, despedido con una lesion de por vida, devuelve 40.000 y no 80.000."""
+    victim = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    victim.cost = 40_000
+    victim.current_value = 80_000
+    session.add(victim)
+    session.commit()
+
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+    killer = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    client.post(
+        f"/api/matches/{match_id}/events",
+        headers=headers,
+        json={
+            "team_id": duel["home"].id,
+            "event_type": "CAS",
+            "player_id": killer.id,
+            "victim_player_id": victim.id,
+            "casualty_result": "LASTING_INJURY_ST",
+        },
+    )
+    client.post(
+        f"/api/matches/{match_id}/complete",
+        headers=headers,
+        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+    )
+    session.refresh(victim)
+    assert victim.status == PlayerStatus.MNG
+
+    away_headers = auth(client, duel["away"].id, "2222")
+    treasury_before = client.get(f"/api/teams/{duel['away'].id}").json()["treasury"]
+    response = client.delete(
+        f"/api/teams/{duel['away'].id}/players/{victim.id}",
+        headers=away_headers,
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["treasury"] == treasury_before + 40_000
+    despedido = next(p for p in body["players"] if p["id"] == victim.id)
+    assert despedido["status"] == "RETIRED"
+    assert despedido["current_value"] == 80_000
+    assert despedido["cost"] == 40_000
+
+
 def test_lesion_persistente_baja_la_caracteristica(client, session, duel):
     headers = _reach_pre_match(client, duel)
     match_id = duel["match"].id

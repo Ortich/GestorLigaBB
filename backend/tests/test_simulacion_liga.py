@@ -5,12 +5,35 @@ from __future__ import annotations
 from simulacion import SEMILLA, simular
 
 
+def _cifra(linea: str, marca: str) -> str:
+    resto = linea.split(marca, 1)[1]
+    return resto.split(" mo", 1)[0]
+
+
 def test_temporada_completa_cuadra_la_clasificacion(client):
     temporada = simular(client, SEMILLA)
 
     assert len(temporada.actas) == 28
     assert {acta.round_number for acta in temporada.actas} == {1, 2, 3, 4, 5, 6, 7}
     assert all(acta.weather and acta.kick_off and acta.prayer for acta in temporada.actas)
+    assert all(acta.home_winnings % 10_000 == 0 and acta.away_winnings % 10_000 == 0 for acta in temporada.actas)
+    assert all(acta.tesoreria for acta in temporada.actas)
+    assert sum(fila["fouls"] for fila in temporada.clasificacion) == sum(
+        acta.home_fouls + acta.away_fouls for acta in temporada.actas
+    )
+    assert sum(fila["passes"] for fila in temporada.clasificacion) == sum(
+        acta.home_passes + acta.away_passes for acta in temporada.actas
+    )
+    assert any(acta.despidos for acta in temporada.actas)
+    assert any(acta.fichajes for acta in temporada.actas)
+    assert any("coste base" in linea for acta in temporada.actas for linea in acta.despidos)
+    assert any("valor actual" in linea for acta in temporada.actas for linea in acta.mercy)
+    # Un lesionado mejorado, al despedirlo, devuelve el coste base y no el valor actual.
+    assert any(
+        "coste base" in linea and "valor actual" in linea and _cifra(linea, "recupera ") != _cifra(linea, "valor actual ")
+        for acta in temporada.actas
+        for linea in acta.despidos
+    )
 
     puntos: dict[str, int] = {}
     for acta in temporada.actas:
@@ -50,16 +73,15 @@ def test_temporada_completa_cuadra_la_clasificacion(client):
         acta.home_td + acta.away_td for acta in temporada.actas
     )
 
-    # Resultado fijo de la semilla 2020. El triple empate a 15 lo rompe
-    # la diferencia de touchdowns y, entre los dos primeros, la de bajas.
+    # Resultado fijo de la semilla 2020, ya con despidos y fichajes.
     assert [fila["team_name"] for fila in temporada.clasificacion] == [
         "Reikland Reavers",
         "Athelorn Avengers",
-        "Chaos All-Stars",
-        "Lustria Croakers",
-        "Naggaroth Nightmares",
         "Dwarf Giants",
-        "Skavenblight Scramblers",
+        "Lustria Croakers",
         "Gouged Eye",
+        "Chaos All-Stars",
+        "Skavenblight Scramblers",
+        "Naggaroth Nightmares",
     ]
-    assert [fila["points"] for fila in temporada.clasificacion] == [15, 15, 15, 13, 13, 11, 6, 6]
+    assert [fila["points"] for fila in temporada.clasificacion] == [15, 15, 13, 12, 12, 11, 7, 6]

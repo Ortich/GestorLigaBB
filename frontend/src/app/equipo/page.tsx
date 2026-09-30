@@ -133,7 +133,19 @@ export default function TeamDashboardPage() {
                 Cuerpo tecnico
               </button>
             </div>
-            <PlayerListCard players={detail.players} />
+            <PlayerListCard
+              players={detail.players}
+              onFire={(player) => {
+                const aviso =
+                  player.current_value === player.cost
+                    ? `Despedir a ${player.name}? Vuelven ${formatGold(player.cost)} a la tesoreria.`
+                    : `Despedir a ${player.name}? Vuelven ${formatGold(player.cost)} de coste base, no los ${formatGold(player.current_value)} de valor actual.`;
+                if (!window.confirm(aviso)) return;
+                void api(`/api/teams/${detail.id}/players/${player.id}`, { method: "DELETE", auth: true })
+                  .then(() => team.reload())
+                  .catch((err: Error) => setError(err.message));
+              }}
+            />
           </section>
         </>
       )}

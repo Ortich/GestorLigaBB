@@ -15,7 +15,6 @@ from app.errors import ForbiddenError, InvalidTransitionError, LeagueError, NotF
 from app.models import (
     LASTING_INJURY_STAT,
     MNG_RESULTS,
-    PERMANENT_RESULTS,
     Bounty,
     CasualtyResult,
     EventType,
@@ -512,7 +511,10 @@ def complete_match(
         session.add(victim)
         injuries.append(detail)
 
-        if mercy_active and result in PERMANENT_RESULTS:
+        # La Red de Seguridad solo cubre la muerte: ahi no hay decision y se
+        # devuelve el valor actual (coste mas mejoras). Una lesion de por vida
+        # no paga sola; si el entrenador despide al jugador, recupera el coste base.
+        if mercy_active and result == CasualtyResult.DEAD:
             victim_team = session.get(Team, victim.team_id)
             if victim_team is not None:
                 percentage = league_engine.rookie_safety_percentage(victim_team.rookie_safety_claims)

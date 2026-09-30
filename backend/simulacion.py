@@ -41,6 +41,12 @@ class Acta:
     away: str
     home_td: int
     away_td: int
+    home_cas: int
+    away_cas: int
+    home_fouls: int
+    away_fouls: int
+    home_passes: int
+    away_passes: int
     home_points: int
     away_points: int
     weather: str
@@ -56,6 +62,9 @@ class Acta:
     mvp_away: str
     bounty: str
     mercy: list[str]
+    despidos: list[str]
+    fichajes: list[str]
+    tesoreria: list[str]
     sponsors: list[str]
 
 
@@ -89,6 +98,7 @@ def simular(client: TestClient, semilla: int = SEMILLA) -> Temporada:
     rng = random.Random(semilla)
     pins = sembrar()
     temporada = Temporada(semilla=semilla)
+    tokens: dict[int, dict[str, str]] = {}
 
     partidos = client.get("/api/matches").json()
     por_jornada: dict[int, list[dict[str, Any]]] = {}
@@ -97,7 +107,7 @@ def simular(client: TestClient, semilla: int = SEMILLA) -> Temporada:
 
     for jornada in sorted(por_jornada):
         for partido in por_jornada[jornada]:
-            temporada.actas.append(_jugar(client, rng, pins, partido))
+            temporada.actas.append(_jugar(client, rng, pins, partido, tokens))
         tabla = client.get("/api/league/standings").json()
         temporada.jornadas.append(tabla)
         if jornada >= 3:
@@ -122,13 +132,21 @@ def _jugar(
     rng: random.Random,
     pins: dict[str, str],
     resumen: dict[str, Any],
+    tokens: dict[int, dict[str, str]],
 ) -> Acta:
     match_id = resumen["id"]
     home_id = resumen["home_team_id"]
     away_id = resumen["away_team_id"]
     home_name = resumen["home_team_name"]
     away_name = resumen["away_team_name"]
-    headers = _login(client, home_id, pins[home_name])
+    headers = _token(client, tokens, home_id, pins[home_name])
+    _token(client, tokens, away_id, pins[away_name])
+    _mejorar_si_puede(client, tokens[home_id], home_id)
+    _mejorar_si_puede(client, tokens[away_id], away_id)
+    tesoreria_antes = {
+        home_id: _tesoreria(client, home_id),
+        away_id: _tesoreria(client, away_id),
+    }
 
     _ok(client.post(f"/api/matches/{match_id}/ready-check", headers=headers))
     _ok(
@@ -306,7 +324,19 @@ def _jugar(
     bounty = informe.get("bounty_payout") or {}
     bounty_txt = ""
     if bounty:
-        bounty_txt = f"{bounty['bounty']} para {bounty['team_name']} ({_oro(bounty['gold'])})"
+        bounty_txt = f"Recompensa: {bounty['bounty']} para {bounty['team_name']} ({_oro(bounty['gold'])})."
+
+    despidos, fichajes = _renovar_plantillas(
+        client, tokens, pins, informe["injuries"], home_id, away_id, home_name, away_name
+    )
+    tesoreria = []
+    for team_id, team_name in ((home_id, home_name), (away_id, away_name)):
+        despues = _tesoreria(client, team_id)
+        antes = tesoreria_antes[team_id]
+        signo = "+" if despues >= antes else ""
+        tesoreria.append(
+            f"Tesoreria de {team_name}: {_oro(antes)} → {_oro(despues)} ({signo}{_oro(despues - antes)})."
+        )
 
     return Acta(
         round_number=resumen["round_number"],
@@ -314,6 +344,12 @@ def _jugar(
         away=away_name,
         home_td=detalle["home_td"],
         away_td=detalle["away_td"],
+        home_cas=marcas[home_id]["cas"],
+        away_cas=marcas[away_id]["cas"],
+        home_fouls=marcas[home_id]["fouls"],
+        away_fouls=marcas[away_id]["fouls"],
+        home_passes=marcas[home_id]["passes"],
+        away_passes=marcas[away_id]["passes"],
         home_points=puntos_local,
         away_points=puntos_visit,
         weather=_nombre_tirada(clima.get("weather"), clima.get("weather_roll")),
@@ -332,9 +368,13 @@ def _jugar(
         mvp_away=nombres.get(detalle.get("away_mvp_player_id"), "—"),
         bounty=bounty_txt,
         mercy=[
-            f"{pago['team_name']} cobra {_oro(pago['gold'])} ({pago['percentage']} %) por {pago['player_name']}"
+            f"Muerte: {pago['team_name']} cobra {_oro(pago['gold'])} "
+            f"({pago['percentage']} % del valor actual) por {pago['player_name']}."
             for pago in informe.get("rookie_safety_payouts") or []
         ],
+        despidos=despidos,
+        fichajes=fichajes,
+        tesoreria=tesoreria,
         sponsors=[
             f"{item['sponsor_name']} → {item['team_name']}"
             for item in informe.get("sponsors") or []
@@ -361,20 +401,23 @@ def formatear(temporada: Temporada) -> str:
             f"  {acta.home} {acta.home_td}–{acta.away_td} {acta.away}"
             f"   ({acta.home_points}-{acta.away_points} pts)"
         )
+        lineas.append(
+            f"    Eventos: TD {acta.home_td}–{acta.away_td}, bajas {acta.home_cas}–{acta.away_cas}, "
+            f"faltas {acta.home_fouls}–{acta.away_fouls}, pases {acta.home_passes}–{acta.away_passes}."
+        )
         lineas.append(f"    Clima: {acta.weather}. Patada inicial: {acta.kick_off}. Plegaria: {acta.prayer}.")
         if acta.petty_cash and acta.petty_cash_team:
             gasto = ", ".join(acta.inducements) if acta.inducements else "no gasta nada"
             lineas.append(f"    Fondo Menor: {_oro(acta.petty_cash)} para {acta.petty_cash_team} → {gasto}.")
         if acta.injuries:
             lineas.append("    Heridos: " + "; ".join(acta.injuries) + ".")
+        lineas.append(f"    MVP: {acta.mvp_home} y {acta.mvp_away}.")
         lineas.append(
-            f"    Ganancias: {acta.home} {_oro(acta.home_winnings)}, {acta.away} {_oro(acta.away_winnings)}."
-            f" MVP: {acta.mvp_home} y {acta.mvp_away}."
+            f"    Oro: {acta.home} {_oro(acta.home_winnings)} de ganancias, "
+            f"{acta.away} {_oro(acta.away_winnings)} de ganancias."
         )
-        if acta.bounty:
-            lineas.append(f"    Recompensa: {acta.bounty}.")
-        for pago in acta.mercy:
-            lineas.append(f"    Red de Seguridad: {pago}.")
+        for extra in (*acta.mercy, *([acta.bounty] if acta.bounty else []), *acta.despidos, *acta.fichajes, *acta.tesoreria):
+            lineas.append(f"    {extra}")
         if indice == len(temporada.actas) - 1 or temporada.actas[indice + 1].round_number != jornada_actual:
             if jornada_actual == len(temporada.jornadas):
                 lineas.extend(_tabla(temporada.jornadas[jornada_actual - 1]))
@@ -516,6 +559,126 @@ def _equipo(team_id: int, home_id: int, home_name: str, away_name: str) -> str:
 
 def _oro(cantidad: int) -> str:
     return f"{cantidad:,}".replace(",", ".") + " mo"
+
+
+def _token(
+    client: TestClient, tokens: dict[int, dict[str, str]], team_id: int, pin: str
+) -> dict[str, str]:
+    if team_id not in tokens:
+        tokens[team_id] = _login(client, team_id, pin)
+    return tokens[team_id]
+
+
+def _tesoreria(client: TestClient, team_id: int) -> int:
+    return client.get(f"/api/teams/{team_id}").json()["treasury"]
+
+
+def _mejorar_si_puede(client: TestClient, headers: dict[str, str], team_id: int) -> None:
+    """Gasta 6 SPP en una habilidad. Sube el valor actual y deja el coste base quieto."""
+    plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
+    for jugador in plantilla["players"]:
+        if jugador["status"] in ("DEAD", "RETIRED") or jugador["spp"] < 6:
+            continue
+        habilidad = f"Oficio {jugador['spp']}"
+        response = client.post(
+            f"/api/teams/{team_id}/players/{jugador['id']}/advance",
+            headers=headers,
+            json={"code": "CHOSEN_PRIMARY", "skill": habilidad},
+        )
+        if response.status_code < 400:
+            return
+
+
+def _renovar_plantillas(
+    client: TestClient,
+    tokens: dict[int, dict[str, str]],
+    pins: dict[str, str],
+    injuries: list[dict[str, Any]],
+    home_id: int,
+    away_id: int,
+    home_name: str,
+    away_name: str,
+) -> tuple[list[str], list[str]]:
+    nombres = {home_id: home_name, away_id: away_name}
+    despidos: list[str] = []
+    fichajes: list[str] = []
+    for item in injuries:
+        team_id = item["team_id"]
+        team_name = nombres[team_id]
+        headers = _token(client, tokens, team_id, pins[team_name])
+        if _de_por_vida(item["effect"]):
+            plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
+            jugador = next(p for p in plantilla["players"] if p["id"] == item["player_id"])
+            antes = plantilla["treasury"]
+            despues = _ok(
+                client.delete(f"/api/teams/{team_id}/players/{jugador['id']}", headers=headers)
+            )
+            devuelto = despues["treasury"] - antes
+            if devuelto != jugador["cost"]:
+                raise RuntimeError(
+                    f"El despido de {jugador['name']} devolvio {devuelto}, no el coste base {jugador['cost']}."
+                )
+            despidos.append(
+                f"Despido: {team_name} echa a {jugador['name']} y recupera {_oro(devuelto)} "
+                f"de coste base (valor actual {_oro(jugador['current_value'])})."
+            )
+            alta = _fichar(client, headers, team_id, team_name, jugador["position"])
+        elif item["effect"] == "Muerto":
+            plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
+            jugador = next(p for p in plantilla["players"] if p["id"] == item["player_id"])
+            alta = _fichar(client, headers, team_id, team_name, jugador["position"])
+        else:
+            continue
+        if alta:
+            fichajes.append(alta)
+    return despidos, fichajes
+
+
+def _fichar(
+    client: TestClient,
+    headers: dict[str, str],
+    team_id: int,
+    team_name: str,
+    position_name: str,
+) -> Optional[str]:
+    opciones = client.get(f"/api/teams/{team_id}/roster-options", headers=headers).json()
+    plantilla = client.get(f"/api/teams/{team_id}", headers=headers).json()
+    tesoreria = plantilla["treasury"]
+    misma = next(
+        (
+            p
+            for p in opciones["positions"]
+            if p["name"] == position_name and p["remaining"] > 0 and p["cost"] <= tesoreria
+        ),
+        None,
+    )
+    if misma is None:
+        posibles = [p for p in opciones["positions"] if p["remaining"] > 0 and p["cost"] <= tesoreria]
+        if not posibles:
+            return f"Fichaje: {team_name} no llega a cubrir la baja de {position_name}."
+        misma = min(posibles, key=lambda p: p["cost"])
+    usados = {p["name"] for p in plantilla["players"]}
+    nombre = f"Recluta {misma['name']}"
+    candidato = nombre
+    serie = 2
+    while candidato in usados:
+        candidato = f"{nombre} {serie}"
+        serie += 1
+    antes = tesoreria
+    despues = _ok(
+        client.post(
+            f"/api/teams/{team_id}/players",
+            headers=headers,
+            json={"position_code": misma["code"], "name": candidato},
+        )
+    )
+    return (
+        f"Fichaje: {team_name} contrata a {candidato} ({misma['name']}) por {_oro(antes - despues['treasury'])}."
+    )
+
+
+def _de_por_vida(effect: str) -> bool:
+    return effect.startswith("-1") or effect == "Lesion persistente"
 
 
 def _login(client: TestClient, team_id: int, pin: str) -> dict[str, str]:

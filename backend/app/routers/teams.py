@@ -42,6 +42,11 @@ def get_team(team_id: int, session: SessionDep) -> TeamDetail:
     return serializers.team_detail(session, team)
 
 
+def _on_roster(player: Player) -> bool:
+    """Muertos y despedidos no ocupan plaza ni cuentan para el maximo de la posicion."""
+    return player.status not in (PlayerStatus.DEAD, PlayerStatus.RETIRED)
+
+
 def _assert_own_team(current: Team, team_id: int) -> None:
     if current.id != team_id:
         raise ForbiddenError("Solo puedes modificar tu propio equipo.")
@@ -77,7 +82,7 @@ def roster_options(team_id: int, session: SessionDep) -> dict[str, Any]:
         return {"race": team.race, "positions": [], "reroll_cost": team.reroll_cost}
 
     players = session.exec(select(Player).where(Player.team_id == team_id)).all()
-    alive = [p for p in players if p.status != PlayerStatus.DEAD]
+    alive = [p for p in players if _on_roster(p)]
     positions = []
     for position in race["positions"]:
         used = sum(1 for p in alive if p.position == position["name"])
@@ -104,7 +109,7 @@ def hire_player(
         raise NotFoundError(f"La posicion '{payload.position_code}' no existe en esta raza.")
 
     players = session.exec(select(Player).where(Player.team_id == team_id)).all()
-    alive = [p for p in players if p.status != PlayerStatus.DEAD]
+    alive = [p for p in players if _on_roster(p)]
     if len(alive) >= 16:
         raise LeagueError("La plantilla ya tiene 16 jugadores, el maximo permitido.")
     if sum(1 for p in alive if p.position == position["name"]) >= position["max"]:
@@ -148,8 +153,19 @@ def fire_player(team_id: int, player_id: int, current: CurrentTeam, session: Ses
     player = session.get(Player, player_id)
     if player is None or player.team_id != team_id:
         raise NotFoundError("Jugador no encontrado en tu plantilla.")
+    if player.status == PlayerStatus.DEAD:
+        raise LeagueError(
+            f"{player.name} ha muerto. Eso no se despide: en las jornadas 1 y 2 "
+            "la Red de Seguridad ya devuelve su valor actual."
+        )
+    if player.status == PlayerStatus.RETIRED:
+        raise LeagueError(f"{player.name} ya esta despedido.")
+
+    # El despido devuelve el coste de contratacion, sin las mejoras.
+    current.treasury += player.cost
     player.status = PlayerStatus.RETIRED
     session.add(player)
+    session.add(current)
     session.commit()
     session.refresh(current)
     return serializers.team_detail(session, current)
