@@ -274,6 +274,25 @@ class MatchInducement(SQLModel, table=True):
     funding: InducementFunding = InducementFunding.PETTY_CASH
 
 
+class TreasurySpill(SQLModel, table=True):
+    """Oro perdido al pasar el tope de tesoreria. Una fila por equipo y partido.
+
+    Es la fuente del panfleto: se consulta por jornada y el titular ya viene escrito.
+    """
+
+    __tablename__ = "treasuryspill"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    match_id: int = Field(foreign_key="match.id", index=True)
+    team_id: int = Field(foreign_key="team.id", index=True)
+    round_number: int = Field(index=True)
+    gold_lost: int
+    winnings: int
+    treasury_before: int
+    headline: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
 class LeagueState(SQLModel, table=True):
     __tablename__ = "leaguestate"
 

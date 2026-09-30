@@ -275,6 +275,49 @@ def test_la_aficion_se_mueve_con_el_2d6_y_no_sale_de_1_a_7():
     assert league_engine.next_dedicated_fans(4, "draw", 4) == 4
 
 
+def test_el_titular_de_la_taberna_distingue_al_que_ya_estaba_lleno():
+    justo = league_engine.tavern_headline("Reavers", 20_000, 140_000)
+    assert "se les fue de las manos" in justo
+    assert "20.000 mo" in justo
+    desfasado = league_engine.tavern_headline("Reavers", 80_000, 150_000)
+    assert "tan desfasado que la fiesta se les fue de madre" in desfasado
+    assert "80.000 mo" in desfasado
+
+
+def test_la_perdida_de_oro_queda_registrada_y_no_se_duplica(session):
+    from sqlmodel import select
+
+    from app.models import TreasurySpill
+
+    home = make_team(session, "Local", fans=1, treasury=150_000)
+    away = make_team(session, "Visitante", fans=1, treasury=10_000)
+    match = make_match(session, home, away, 4, home_td=2, away_td=0)
+    home_side, away_side = league_engine.process_post_match_economy(
+        session,
+        match,
+        home,
+        away,
+        home_winnings_roll=4,
+        away_winnings_roll=1,
+        home_fans_roll=7,
+        away_fans_roll=8,
+    )
+    league_engine.record_treasury_spills(session, match, home_side, away_side)
+    session.commit()
+    league_engine.record_treasury_spills(session, match, home_side, away_side)
+    session.commit()
+
+    rows = session.exec(select(TreasurySpill).where(TreasurySpill.match_id == match.id)).all()
+    assert len(rows) == 1
+    assert rows[0].team_id == home.id
+    assert rows[0].round_number == 4
+    assert rows[0].gold_lost == home_side.discarded
+    assert rows[0].gold_lost == 60_000  # (4+1+1)×10.000, ya estaban en 150.000
+    assert rows[0].treasury_before == 150_000
+    assert "fiesta se les fue de madre" in rows[0].headline
+    assert away_side.discarded == 0
+
+
 def test_el_cierre_economico_respeta_el_tope_y_el_orden(session):
     home = make_team(session, "Local", fans=2, treasury=140_000)
     away = make_team(session, "Visitante", fans=1, treasury=20_000)

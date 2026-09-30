@@ -123,7 +123,7 @@ equipo de mayor VAE no puede comprar incentivos.
 
 Los hinchas dedicados empiezan en 1 y se pueden comprar hasta 3 al crear el equipo. No suben de 7 ni bajan de 1.
 
-Al cerrar el acta cada equipo tira 1D6 y le suma sus hinchas de ese momento. El ganador suma 1 mas. El total, multiplicado por 10.000, entra en la tesoreria. Si el empate, ninguno lleva ese +1. Despues, si la tesoreria pasa de 150.000, se queda en 150.000 y el exceso se gasta en la taberna.
+Al cerrar el acta cada equipo tira 1D6 y le suma sus hinchas de ese momento. El ganador suma 1 mas. El total, multiplicado por 10.000, entra en la tesoreria. Si el empate, ninguno lleva ese +1. Despues, si la tesoreria pasa de 150.000, se queda en 150.000 y el exceso se gasta en la taberna. Cada perdida queda registrada (jornada, equipo, oro y un titular) y se consulta con `GET /api/league/spills?round_number=3`.
 
 La aficion se actualiza despues de cobrar, con un 2D6 comparado con los hinchas de antes:
 

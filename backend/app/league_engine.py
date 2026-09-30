@@ -32,6 +32,7 @@ from app.models import (
     PlayerStatus,
     Sponsor,
     Team,
+    TreasurySpill,
 )
 from app.schemas import CtvBreakdown, SponsorAssignment, StandingRow
 
@@ -217,6 +218,59 @@ def _apply_side(
         conceded=outcome == "concede",
         message=" ".join(notes),
     )
+
+
+def format_gold(amount: int) -> str:
+    """40.000 mo, con el punto de millares que usa el panfleto."""
+    return f"{amount:,}".replace(",", ".") + " mo"
+
+
+def tavern_headline(team_name: str, gold_lost: int, treasury_before: int) -> str:
+    """Titular de la fiesta que se fue de madre. El oro perdido ya está en la cifra."""
+    lost = format_gold(gold_lost)
+    if treasury_before >= TREASURY_CAP:
+        return (
+            f"{team_name} está tan desfasado que la fiesta se les fue de madre: "
+            f"se dejaron {lost} en la taberna."
+        )
+    return (
+        f"En {team_name} la fiesta se les fue de las manos al llegar al tope: "
+        f"se dejaron {lost} en la taberna."
+    )
+
+
+def record_treasury_spills(
+    session: Session,
+    match: Match,
+    *sides: SideEconomy,
+) -> list[TreasurySpill]:
+    """Deja una fila por cada equipo que pierde oro en este partido.
+
+    Si el acta se cierra otra vez, la fila anterior de ese partido se sustituye.
+    """
+    previous = session.exec(select(TreasurySpill).where(TreasurySpill.match_id == match.id)).all()
+    for row in previous:
+        session.delete(row)
+    if previous:
+        session.flush()
+
+    created: list[TreasurySpill] = []
+    for side in sides:
+        if side.discarded <= 0:
+            continue
+        treasury_before = side.treasury + side.discarded - side.winnings
+        spill = TreasurySpill(
+            match_id=match.id or 0,
+            team_id=side.team_id,
+            round_number=match.round_number,
+            gold_lost=side.discarded,
+            winnings=side.winnings,
+            treasury_before=treasury_before,
+            headline=tavern_headline(side.team_name, side.discarded, treasury_before),
+        )
+        session.add(spill)
+        created.append(spill)
+    return created
 
 
 def process_post_match_economy(

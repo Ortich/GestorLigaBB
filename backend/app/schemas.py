@@ -141,6 +141,21 @@ class BountyPublic(BaseModel):
     reward_gold: int
 
 
+class TreasurySpillPublic(BaseModel):
+    """Una fiesta que se fue de madre: oro perdido en una jornada."""
+
+    id: int
+    round_number: int
+    match_id: int
+    team_id: int
+    team_name: str
+    opponent_name: str
+    gold_lost: int
+    winnings: int
+    treasury_before: int
+    headline: str
+
+
 # --------------------------------------------------------------------------- #
 # Clasificacion
 # --------------------------------------------------------------------------- #

@@ -165,6 +165,15 @@ def test_flujo_completo_de_partido(client, session, duel):
     assert report["home_discarded"] == 50_000
     assert report["away_discarded"] == 20_000
     assert report["tavern"]
+    spills = client.get("/api/league/spills", params={"round_number": 1}).json()
+    assert [(row["team_name"], row["gold_lost"], row["opponent_name"]) for row in spills] == [
+        ("Reavers", 50_000, "Gouged Eye"),
+        ("Gouged Eye", 20_000, "Reavers"),
+    ]
+    assert all(row["treasury_before"] == 100_000 for row in spills)
+    assert all("se dejaron" in row["headline"] and "taberna" in row["headline"] for row in spills)
+    assert report["tavern"] == [row["headline"] for row in spills]
+    assert client.get("/api/league/spills", params={"round_number": 2}).json() == []
     assert report["injuries"][0]["result"] == "SERIOUSLY_HURT"
 
     session.refresh(scorer)
@@ -699,6 +708,7 @@ def test_ganancias_con_un_hincha_no_tocan_el_tope(client, session):
     assert report["away_winnings"] == 30_000  # (2 + 1) × 10.000
     assert report["home_discarded"] == 0
     assert report["away_discarded"] == 0
+    assert client.get("/api/league/spills").json() == []
     session.refresh(home)
     session.refresh(away)
     assert home.treasury == 60_000

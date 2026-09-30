@@ -529,18 +529,15 @@ def complete_match(
                 "gold": bounty.reward_gold,
             }
 
+    spills = league_engine.record_treasury_spills(session, match, home_economy, away_economy)
+    tavern = [spill.headline for spill in spills]
+
     match.status = MatchStatus.COMPLETED
     match.completed_at = utcnow()
     session.add_all([match, home, away])
     session.commit()
 
     assignments = _after_match_completed(session, match)
-
-    tavern = [
-        f"{side.team_name}: {league_engine.TAVERN_NOTE}"
-        for side in (home_economy, away_economy)
-        if side.discarded
-    ]
 
     return MatchCompletionReport(
         match_id=match.id or 0,
