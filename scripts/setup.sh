@@ -24,5 +24,5 @@ npm install
 cd ..
 
 echo
-echo "Listo. Arranca la app en modo desarrollo con: scripts/dev.sh"
-echo "O genera el build de produccion con:          scripts/build.sh"
+echo "Listo. Para jugar, sin Docker:  scripts/start.sh"
+echo "Para desarrollar la interfaz:   scripts/dev.sh"

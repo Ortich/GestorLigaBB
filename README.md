@@ -32,12 +32,20 @@ que devuelve la API.
 
 ## Puesta en marcha
 
+En tu PC no hace falta Docker. Son dos comandos, y la app solo existe mientras la terminal sigue abierta:
+
 ```bash
-scripts/setup.sh     # instala dependencias y crea la liga con 8 equipos
-scripts/build.sh     # compila el frontend y sirve todo desde http://localhost:8000
+scripts/setup.sh     # una vez: instala dependencias y crea la liga
+scripts/start.sh     # cada vez que jugais. Ctrl+C para pararla
 ```
 
-Para desarrollar con recarga en caliente (backend en el 8000 y frontend en el 3000):
+`start.sh` abre http://localhost:8000 y muestra la direccion para los moviles de la misma WiFi. La base de datos es el fichero `backend/liga.db`. Copia de seguridad:
+
+```bash
+cp backend/liga.db "backend/liga-$(date +%F).db"
+```
+
+Para desarrollar la interfaz con recarga en caliente (backend en el 8000 y frontend en el 3000):
 
 ```bash
 scripts/dev.sh
@@ -66,18 +74,19 @@ Lo mas comodo es levantar un solo proceso en el portatil del anfitrion y que tod
 entren por la IP local:
 
 ```bash
-scripts/build.sh
+scripts/start.sh
 # los demas entran en http://<ip-del-portatil>:8000
 ```
 
 ## Donde dejarla, sin pagar
 
-No hace falta otro servidor de base de datos. Toda la liga es el fichero SQLite
-`data/liga.db` (o `backend/liga.db` si arrancas sin Docker). Copiar ese fichero es la copia de
-seguridad. Supabase, Postgres o MySQL no aportan nada aqui: son otro servicio que mantener, y el
-plan gratuito de Supabase ademas pausa el proyecto si pasa un tiempo sin uso.
+No hace falta otro servidor de base de datos. En local, toda la liga es el fichero
+`backend/liga.db`. Copiarlo es la copia de seguridad. Supabase, Postgres o MySQL no aportan nada
+aqui: son otro servicio que mantener, y el plan gratuito de Supabase ademas pausa el proyecto si
+pasa un tiempo sin uso.
 
-La opcion que encaja con 8 personas y coste cero es tenerla en casa.
+La opcion que encaja con 8 personas y coste cero es tenerla en casa, arrancada con `scripts/start.sh`.
+Ese proceso ocupa lo que ocupa un programa de Python. Al cerrar la terminal no queda nada corriendo.
 
 1. **Misma WiFi, la noche del partido.** El portatil del anfitrion ejecuta la app y los moviles
    entran por su IP local. No hay nada que abrir a internet.
@@ -93,10 +102,11 @@ La opcion que encaja con 8 personas y coste cero es tenerla en casa.
 
 Antes de exponerla fuera de tu WiFi cambia `SECRET_KEY`, `MASTER_KEY` y los PIN.
 
-### Docker
+### Docker, solo si mas adelante usas un servidor
 
-La imagen mete el frontend y la API en un solo contenedor. El fichero de la liga queda en `./data`,
-fuera del contenedor, asi que actualizar la imagen no borra los partidos.
+En el PC de casa no lo uses: el demonio de Docker se queda residente y pesa mas que la propia app.
+La imagen sirve si algun dia mueves la liga a un VPS. El fichero queda en `./data/liga.db`, fuera
+del contenedor, asi que actualizar la imagen no borra los partidos.
 
 ```bash
 docker compose up -d --build
@@ -218,7 +228,7 @@ frontend/
   src/lib/             Cliente de API, tipos y hooks
 Dockerfile             Imagen unica (frontend + API)
 docker-compose.yml     Arranque con el fichero de la liga en ./data
-scripts/               setup.sh, dev.sh, build.sh, docker-entrypoint.sh
+scripts/               setup.sh, start.sh, dev.sh, build.sh, docker-entrypoint.sh
 ```
 
 ## Tests
