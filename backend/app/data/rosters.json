@@ -1,0 +1,1038 @@
+{
+  "races": {
+    "Humano": {
+      "reroll_cost": 50000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "HU_LINE",
+          "name": "Liniero Humano",
+          "max": 16,
+          "ma": 6,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 9,
+          "cost": 50000,
+          "skills": []
+        },
+        {
+          "code": "HU_THROWER",
+          "name": "Lanzador Humano",
+          "max": 2,
+          "ma": 6,
+          "st": 3,
+          "ag": 3,
+          "pa": 2,
+          "av": 9,
+          "cost": 80000,
+          "skills": [
+            "Manos Seguras",
+            "Pase"
+          ]
+        },
+        {
+          "code": "HU_CATCHER",
+          "name": "Receptor Humano",
+          "max": 4,
+          "ma": 8,
+          "st": 2,
+          "ag": 3,
+          "pa": 5,
+          "av": 8,
+          "cost": 65000,
+          "skills": [
+            "Atrapar",
+            "Esquivar"
+          ]
+        },
+        {
+          "code": "HU_BLITZER",
+          "name": "Blitzer Humano",
+          "max": 4,
+          "ma": 7,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 9,
+          "cost": 85000,
+          "skills": [
+            "Bloqueo"
+          ]
+        },
+        {
+          "code": "HU_OGRE",
+          "name": "Ogro",
+          "max": 1,
+          "ma": 5,
+          "st": 5,
+          "ag": 4,
+          "pa": 5,
+          "av": 10,
+          "cost": 140000,
+          "skills": [
+            "Bestia Salvaje",
+            "Cabeza Hueca",
+            "Fuerte",
+            "Golpe Mortifero",
+            "Lanzar Companero"
+          ]
+        }
+      ],
+      "names": [
+        "Aldric",
+        "Bertran",
+        "Cedric",
+        "Dorian",
+        "Edmund",
+        "Faramir",
+        "Gregor",
+        "Halric",
+        "Ivar",
+        "Jorund",
+        "Kaelan",
+        "Lothar",
+        "Marek",
+        "Norbert",
+        "Osric",
+        "Percival"
+      ]
+    },
+    "Orco": {
+      "reroll_cost": 50000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "OR_LINE",
+          "name": "Liniero Orco",
+          "max": 16,
+          "ma": 5,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 10,
+          "cost": 50000,
+          "skills": []
+        },
+        {
+          "code": "OR_THROWER",
+          "name": "Lanzador Orco",
+          "max": 2,
+          "ma": 5,
+          "st": 3,
+          "ag": 3,
+          "pa": 3,
+          "av": 9,
+          "cost": 65000,
+          "skills": [
+            "Manos Seguras",
+            "Pase"
+          ]
+        },
+        {
+          "code": "OR_BLITZER",
+          "name": "Blitzer Orco",
+          "max": 4,
+          "ma": 6,
+          "st": 3,
+          "ag": 3,
+          "pa": 5,
+          "av": 10,
+          "cost": 80000,
+          "skills": [
+            "Bloqueo"
+          ]
+        },
+        {
+          "code": "OR_BIGUN",
+          "name": "Bloqueador Grandullon",
+          "max": 4,
+          "ma": 5,
+          "st": 4,
+          "ag": 4,
+          "pa": 5,
+          "av": 10,
+          "cost": 90000,
+          "skills": []
+        },
+        {
+          "code": "OR_GOBLIN",
+          "name": "Goblin Lanzadera",
+          "max": 4,
+          "ma": 6,
+          "st": 2,
+          "ag": 3,
+          "pa": 4,
+          "av": 8,
+          "cost": 40000,
+          "skills": [
+            "Esquivar",
+            "Escurridizo",
+            "Proyectil",
+            "Canijo"
+          ]
+        },
+        {
+          "code": "OR_TROLL",
+          "name": "Troll",
+          "max": 1,
+          "ma": 4,
+          "st": 5,
+          "ag": 5,
+          "pa": 5,
+          "av": 10,
+          "cost": 115000,
+          "skills": [
+            "Siempre Hambriento",
+            "Cabeza Hueca",
+            "Fuerte",
+            "Regeneracion",
+            "Lanzar Companero"
+          ]
+        }
+      ],
+      "names": [
+        "Grubb",
+        "Zagnak",
+        "Urgok",
+        "Bolg",
+        "Krag",
+        "Mogrud",
+        "Snarl",
+        "Gorbag",
+        "Thruk",
+        "Varnak",
+        "Ugluk",
+        "Drazz",
+        "Skarn",
+        "Muzgash",
+        "Hakka",
+        "Rukk"
+      ]
+    },
+    "Enano": {
+      "reroll_cost": 40000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "DW_BLOCKER",
+          "name": "Bloqueador Enano",
+          "max": 16,
+          "ma": 4,
+          "st": 3,
+          "ag": 4,
+          "pa": 5,
+          "av": 10,
+          "cost": 70000,
+          "skills": [
+            "Bloqueo",
+            "Placar",
+            "Craneo Duro"
+          ]
+        },
+        {
+          "code": "DW_RUNNER",
+          "name": "Corredor Enano",
+          "max": 2,
+          "ma": 6,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 9,
+          "cost": 85000,
+          "skills": [
+            "Manos Seguras",
+            "Craneo Duro"
+          ]
+        },
+        {
+          "code": "DW_BLITZER",
+          "name": "Blitzer Enano",
+          "max": 2,
+          "ma": 5,
+          "st": 3,
+          "ag": 3,
+          "pa": 5,
+          "av": 10,
+          "cost": 80000,
+          "skills": [
+            "Bloqueo",
+            "Craneo Duro"
+          ]
+        },
+        {
+          "code": "DW_SLAYER",
+          "name": "Matatrolls",
+          "max": 2,
+          "ma": 5,
+          "st": 3,
+          "ag": 4,
+          "pa": 6,
+          "av": 9,
+          "cost": 95000,
+          "skills": [
+            "Bloqueo",
+            "Impetuoso",
+            "Furia",
+            "Craneo Duro"
+          ]
+        },
+        {
+          "code": "DW_DEATHROLLER",
+          "name": "Apisonadora",
+          "max": 1,
+          "ma": 4,
+          "st": 7,
+          "ag": 5,
+          "pa": null,
+          "av": 11,
+          "cost": 170000,
+          "skills": [
+            "Cabeza Hueca",
+            "Sin Manos",
+            "Fuerte",
+            "Pisotear",
+            "Torpe",
+            "Secreto"
+          ]
+        }
+      ],
+      "names": [
+        "Borin",
+        "Durgan",
+        "Fimbul",
+        "Grimli",
+        "Hrothgar",
+        "Kazek",
+        "Morgrim",
+        "Norri",
+        "Olfur",
+        "Thrain",
+        "Ulfar",
+        "Varek",
+        "Balin",
+        "Dagnar",
+        "Farin",
+        "Gunnar"
+      ]
+    },
+    "Elfo Silvano": {
+      "reroll_cost": 50000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "WE_LINE",
+          "name": "Liniero Elfo Silvano",
+          "max": 16,
+          "ma": 7,
+          "st": 3,
+          "ag": 2,
+          "pa": 4,
+          "av": 8,
+          "cost": 70000,
+          "skills": []
+        },
+        {
+          "code": "WE_THROWER",
+          "name": "Lanzador Elfo Silvano",
+          "max": 2,
+          "ma": 7,
+          "st": 3,
+          "ag": 2,
+          "pa": 2,
+          "av": 8,
+          "cost": 95000,
+          "skills": [
+            "Pase"
+          ]
+        },
+        {
+          "code": "WE_CATCHER",
+          "name": "Receptor Elfo Silvano",
+          "max": 4,
+          "ma": 8,
+          "st": 2,
+          "ag": 2,
+          "pa": 5,
+          "av": 8,
+          "cost": 100000,
+          "skills": [
+            "Atrapar",
+            "Esquivar",
+            "Esprintar"
+          ]
+        },
+        {
+          "code": "WE_WARDANCER",
+          "name": "Danzarina Guerrera",
+          "max": 2,
+          "ma": 8,
+          "st": 3,
+          "ag": 2,
+          "pa": 4,
+          "av": 8,
+          "cost": 125000,
+          "skills": [
+            "Bloqueo",
+            "Esquivar",
+            "Saltar"
+          ]
+        },
+        {
+          "code": "WE_TREEMAN",
+          "name": "Hombre Arbol",
+          "max": 1,
+          "ma": 2,
+          "st": 6,
+          "ag": 5,
+          "pa": 5,
+          "av": 11,
+          "cost": 120000,
+          "skills": [
+            "Cabeza Hueca",
+            "Fuerte",
+            "Raices",
+            "Golpe Mortifero",
+            "Lanzar Companero",
+            "Piel de Piedra"
+          ]
+        }
+      ],
+      "names": [
+        "Aelthir",
+        "Belarion",
+        "Caladrel",
+        "Daeryn",
+        "Elrohir",
+        "Faelan",
+        "Galathil",
+        "Haldir",
+        "Ithilien",
+        "Jaelis",
+        "Kaelith",
+        "Lithoniel",
+        "Maerwen",
+        "Nimrodel",
+        "Orenthal",
+        "Sylvaris"
+      ]
+    },
+    "Skaven": {
+      "reroll_cost": 50000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "SK_LINE",
+          "name": "Liniero Skaven",
+          "max": 16,
+          "ma": 7,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 8,
+          "cost": 50000,
+          "skills": []
+        },
+        {
+          "code": "SK_THROWER",
+          "name": "Lanzador Skaven",
+          "max": 2,
+          "ma": 7,
+          "st": 3,
+          "ag": 3,
+          "pa": 2,
+          "av": 8,
+          "cost": 85000,
+          "skills": [
+            "Pase",
+            "Manos Seguras"
+          ]
+        },
+        {
+          "code": "SK_GUTTER",
+          "name": "Corredor de Cloacas",
+          "max": 4,
+          "ma": 9,
+          "st": 2,
+          "ag": 2,
+          "pa": 4,
+          "av": 8,
+          "cost": 85000,
+          "skills": [
+            "Esquivar"
+          ]
+        },
+        {
+          "code": "SK_BLITZER",
+          "name": "Blitzer Rata Tormenta",
+          "max": 2,
+          "ma": 7,
+          "st": 3,
+          "ag": 3,
+          "pa": 5,
+          "av": 9,
+          "cost": 90000,
+          "skills": [
+            "Bloqueo"
+          ]
+        },
+        {
+          "code": "SK_RATOGRE",
+          "name": "Rata Ogro",
+          "max": 1,
+          "ma": 6,
+          "st": 5,
+          "ag": 4,
+          "pa": 6,
+          "av": 9,
+          "cost": 150000,
+          "skills": [
+            "Bestia Salvaje",
+            "Fuerte",
+            "Cabeza Hueca",
+            "Ir a por Ellos",
+            "Presa"
+          ]
+        }
+      ],
+      "names": [
+        "Skritch",
+        "Nurglitch",
+        "Thanquol",
+        "Virkitt",
+        "Slynk",
+        "Grissk",
+        "Ikkrit",
+        "Queek",
+        "Ratchit",
+        "Snikch",
+        "Verminus",
+        "Kraskk",
+        "Zizzik",
+        "Mordkin",
+        "Skreet",
+        "Vittrik"
+      ]
+    },
+    "Elfo Oscuro": {
+      "reroll_cost": 50000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "DE_LINE",
+          "name": "Liniero Elfo Oscuro",
+          "max": 16,
+          "ma": 6,
+          "st": 3,
+          "ag": 2,
+          "pa": 4,
+          "av": 9,
+          "cost": 70000,
+          "skills": []
+        },
+        {
+          "code": "DE_THROWER",
+          "name": "Lanzador Elfo Oscuro",
+          "max": 2,
+          "ma": 6,
+          "st": 3,
+          "ag": 2,
+          "pa": 2,
+          "av": 9,
+          "cost": 75000,
+          "skills": [
+            "Pase",
+            "Pase Seguro"
+          ]
+        },
+        {
+          "code": "DE_BLITZER",
+          "name": "Blitzer Elfo Oscuro",
+          "max": 4,
+          "ma": 7,
+          "st": 3,
+          "ag": 2,
+          "pa": 4,
+          "av": 9,
+          "cost": 100000,
+          "skills": [
+            "Bloqueo"
+          ]
+        },
+        {
+          "code": "DE_WITCH",
+          "name": "Bruja Elfa",
+          "max": 2,
+          "ma": 7,
+          "st": 3,
+          "ag": 2,
+          "pa": 4,
+          "av": 8,
+          "cost": 110000,
+          "skills": [
+            "Esquivar",
+            "Furia",
+            "Levantarse de un Salto"
+          ]
+        },
+        {
+          "code": "DE_RUNNER",
+          "name": "Corredor Elfo Oscuro",
+          "max": 2,
+          "ma": 7,
+          "st": 3,
+          "ag": 2,
+          "pa": 3,
+          "av": 8,
+          "cost": 80000,
+          "skills": [
+            "Pase Rapido"
+          ]
+        }
+      ],
+      "names": [
+        "Malekith",
+        "Drusilla",
+        "Khalida",
+        "Vorlax",
+        "Naeryth",
+        "Sethrel",
+        "Morathi",
+        "Lokhir",
+        "Xarael",
+        "Velkhana",
+        "Ashelor",
+        "Ruvyn",
+        "Sylthar",
+        "Kaltheris",
+        "Zerandra",
+        "Elgareth"
+      ]
+    },
+    "Hombre Lagarto": {
+      "reroll_cost": 70000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "LZ_SKINK",
+          "name": "Corredor Skink",
+          "max": 12,
+          "ma": 8,
+          "st": 2,
+          "ag": 3,
+          "pa": 4,
+          "av": 8,
+          "cost": 60000,
+          "skills": [
+            "Esquivar",
+            "Canijo"
+          ]
+        },
+        {
+          "code": "LZ_SAURUS",
+          "name": "Bloqueador Saurio",
+          "max": 6,
+          "ma": 6,
+          "st": 4,
+          "ag": 5,
+          "pa": 6,
+          "av": 10,
+          "cost": 85000,
+          "skills": []
+        },
+        {
+          "code": "LZ_CHAMELEON",
+          "name": "Skink Camaleon",
+          "max": 2,
+          "ma": 7,
+          "st": 2,
+          "ag": 3,
+          "pa": 3,
+          "av": 8,
+          "cost": 70000,
+          "skills": [
+            "Esquivar",
+            "Presion",
+            "Perseguir",
+            "Canijo"
+          ]
+        },
+        {
+          "code": "LZ_KROX",
+          "name": "Kroxigor",
+          "max": 1,
+          "ma": 6,
+          "st": 5,
+          "ag": 4,
+          "pa": 6,
+          "av": 10,
+          "cost": 140000,
+          "skills": [
+            "Cabeza Hueca",
+            "Fuerte",
+            "Golpe Mortifero",
+            "Placaje Multiple",
+            "Torpe"
+          ]
+        }
+      ],
+      "names": [
+        "Xoltec",
+        "Quetzl",
+        "Itzcoatl",
+        "Tlaloc",
+        "Huitzil",
+        "Chalco",
+        "Nezahual",
+        "Papalotl",
+        "Cuauhtli",
+        "Tezca",
+        "Mixcoatl",
+        "Yaotl",
+        "Zipacna",
+        "Kukul",
+        "Ahuizotl",
+        "Balam"
+      ]
+    },
+    "Caos Elegido": {
+      "reroll_cost": 60000,
+      "apothecary_allowed": true,
+      "positions": [
+        {
+          "code": "CH_BEASTMAN",
+          "name": "Hombre Bestia Corredor",
+          "max": 16,
+          "ma": 6,
+          "st": 3,
+          "ag": 3,
+          "pa": 4,
+          "av": 9,
+          "cost": 60000,
+          "skills": [
+            "Cuernos"
+          ]
+        },
+        {
+          "code": "CH_CHOSEN",
+          "name": "Bloqueador Elegido",
+          "max": 4,
+          "ma": 5,
+          "st": 4,
+          "ag": 4,
+          "pa": 5,
+          "av": 10,
+          "cost": 100000,
+          "skills": []
+        },
+        {
+          "code": "CH_TROLL",
+          "name": "Troll del Caos",
+          "max": 1,
+          "ma": 4,
+          "st": 5,
+          "ag": 5,
+          "pa": 5,
+          "av": 10,
+          "cost": 115000,
+          "skills": [
+            "Siempre Hambriento",
+            "Cabeza Hueca",
+            "Fuerte",
+            "Regeneracion",
+            "Lanzar Companero"
+          ]
+        },
+        {
+          "code": "CH_OGRE",
+          "name": "Ogro del Caos",
+          "max": 1,
+          "ma": 5,
+          "st": 5,
+          "ag": 4,
+          "pa": 5,
+          "av": 10,
+          "cost": 140000,
+          "skills": [
+            "Bestia Salvaje",
+            "Cabeza Hueca",
+            "Fuerte",
+            "Golpe Mortifero",
+            "Lanzar Companero"
+          ]
+        },
+        {
+          "code": "CH_MINOTAUR",
+          "name": "Minotauro",
+          "max": 1,
+          "ma": 5,
+          "st": 5,
+          "ag": 4,
+          "pa": 6,
+          "av": 9,
+          "cost": 150000,
+          "skills": [
+            "Bestia Salvaje",
+            "Cuernos",
+            "Frenesi",
+            "Cabeza Hueca",
+            "Fuerte",
+            "Golpe Mortifero"
+          ]
+        }
+      ],
+      "names": [
+        "Kharnath",
+        "Belzarok",
+        "Vhorgul",
+        "Skulvar",
+        "Draznok",
+        "Malakor",
+        "Grimtooth",
+        "Zarathos",
+        "Vulkarn",
+        "Nyxaroth",
+        "Hexmar",
+        "Torgash",
+        "Azgoroth",
+        "Kraelok",
+        "Dreadmaw",
+        "Sarkoth"
+      ]
+    }
+  },
+  "seed_teams": [
+    {
+      "name": "Reikland Reavers",
+      "coach_name": "Marcos",
+      "race": "Humano",
+      "logo": "🦅",
+      "pin": "1111",
+      "lineup": [
+        {
+          "code": "HU_BLITZER",
+          "count": 3
+        },
+        {
+          "code": "HU_THROWER",
+          "count": 1
+        },
+        {
+          "code": "HU_CATCHER",
+          "count": 2
+        },
+        {
+          "code": "HU_LINE",
+          "count": 5
+        }
+      ],
+      "rerolls": 3,
+      "assistant_coaches": 1,
+      "cheerleaders": 1,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Gouged Eye",
+      "coach_name": "Javi",
+      "race": "Orco",
+      "logo": "👁️",
+      "pin": "2222",
+      "lineup": [
+        {
+          "code": "OR_BLITZER",
+          "count": 3
+        },
+        {
+          "code": "OR_BIGUN",
+          "count": 2
+        },
+        {
+          "code": "OR_THROWER",
+          "count": 1
+        },
+        {
+          "code": "OR_LINE",
+          "count": 5
+        }
+      ],
+      "rerolls": 3,
+      "assistant_coaches": 1,
+      "cheerleaders": 1,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Dwarf Giants",
+      "coach_name": "Raul",
+      "race": "Enano",
+      "logo": "⛏️",
+      "pin": "3333",
+      "lineup": [
+        {
+          "code": "DW_BLITZER",
+          "count": 2
+        },
+        {
+          "code": "DW_RUNNER",
+          "count": 1
+        },
+        {
+          "code": "DW_SLAYER",
+          "count": 1
+        },
+        {
+          "code": "DW_BLOCKER",
+          "count": 7
+        }
+      ],
+      "rerolls": 2,
+      "assistant_coaches": 1,
+      "cheerleaders": 1,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Athelorn Avengers",
+      "coach_name": "Nerea",
+      "race": "Elfo Silvano",
+      "logo": "🌿",
+      "pin": "4444",
+      "lineup": [
+        {
+          "code": "WE_WARDANCER",
+          "count": 1
+        },
+        {
+          "code": "WE_CATCHER",
+          "count": 1
+        },
+        {
+          "code": "WE_THROWER",
+          "count": 1
+        },
+        {
+          "code": "WE_LINE",
+          "count": 8
+        }
+      ],
+      "rerolls": 1,
+      "assistant_coaches": 0,
+      "cheerleaders": 0,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Skavenblight Scramblers",
+      "coach_name": "Alba",
+      "race": "Skaven",
+      "logo": "🐀",
+      "pin": "5555",
+      "lineup": [
+        {
+          "code": "SK_GUTTER",
+          "count": 3
+        },
+        {
+          "code": "SK_BLITZER",
+          "count": 2
+        },
+        {
+          "code": "SK_THROWER",
+          "count": 1
+        },
+        {
+          "code": "SK_LINE",
+          "count": 5
+        }
+      ],
+      "rerolls": 2,
+      "assistant_coaches": 1,
+      "cheerleaders": 1,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Naggaroth Nightmares",
+      "coach_name": "Diego",
+      "race": "Elfo Oscuro",
+      "logo": "🌑",
+      "pin": "6666",
+      "lineup": [
+        {
+          "code": "DE_BLITZER",
+          "count": 2
+        },
+        {
+          "code": "DE_WITCH",
+          "count": 1
+        },
+        {
+          "code": "DE_RUNNER",
+          "count": 1
+        },
+        {
+          "code": "DE_LINE",
+          "count": 7
+        }
+      ],
+      "rerolls": 1,
+      "assistant_coaches": 0,
+      "cheerleaders": 0,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Lustria Croakers",
+      "coach_name": "Sara",
+      "race": "Hombre Lagarto",
+      "logo": "🦎",
+      "pin": "7777",
+      "lineup": [
+        {
+          "code": "LZ_SAURUS",
+          "count": 5
+        },
+        {
+          "code": "LZ_CHAMELEON",
+          "count": 1
+        },
+        {
+          "code": "LZ_SKINK",
+          "count": 5
+        }
+      ],
+      "rerolls": 2,
+      "assistant_coaches": 0,
+      "cheerleaders": 0,
+      "apothecary": true,
+      "fans": 1
+    },
+    {
+      "name": "Chaos All-Stars",
+      "coach_name": "Ivan",
+      "race": "Caos Elegido",
+      "logo": "🔥",
+      "pin": "8888",
+      "lineup": [
+        {
+          "code": "CH_CHOSEN",
+          "count": 3
+        },
+        {
+          "code": "CH_MINOTAUR",
+          "count": 1
+        },
+        {
+          "code": "CH_BEASTMAN",
+          "count": 7
+        }
+      ],
+      "rerolls": 1,
+      "assistant_coaches": 0,
+      "cheerleaders": 0,
+      "apothecary": true,
+      "fans": 1
+    }
+  ]
+}
