@@ -72,19 +72,19 @@ export default function TeamDashboardPage() {
             )}
             {next.data && (
               <Link href={`/partido?id=${next.data.id}`} className="block">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs text-stone-500">Jornada {next.data.round_number}</p>
-                    <p className="truncate font-bold text-stone-100">
-                      {next.data.home_logo} {next.data.home_team_name}
-                      <span className="mx-2 text-stone-500">vs</span>
-                      {next.data.away_logo} {next.data.away_team_name}
-                    </p>
-                  </div>
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs text-stone-500">Jornada {next.data.round_number}</p>
                   <span className={`chip ${MATCH_STATUS_STYLE[next.data.status]}`}>
                     {MATCH_STATUS_LABEL[next.data.status]}
                   </span>
                 </div>
+                <p className="text-base font-bold leading-snug text-stone-100">
+                  {next.data.home_logo} {next.data.home_team_name}
+                </p>
+                <p className="text-base font-bold leading-snug text-stone-100">
+                  <span className="mr-2 text-sm font-medium text-stone-500">vs</span>
+                  {next.data.away_logo} {next.data.away_team_name}
+                </p>
                 <span className="btn-primary mt-3 w-full">Abrir asistente de partido</span>
               </Link>
             )}
