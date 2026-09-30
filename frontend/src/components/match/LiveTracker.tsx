@@ -199,7 +199,8 @@ export function LiveTracker({
         ))}
       </div>
 
-      <div className="flex gap-2">
+      {/* Siempre a mano: la plantilla es larga y el boton no puede quedar al final del scroll. */}
+      <div className="fixed bottom-[60px] left-1/2 z-30 flex w-full max-w-xl -translate-x-1/2 gap-2 border-t border-white/10 bg-pitch-950/95 px-4 py-2 backdrop-blur">
         <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowLog(true)}>
           Acta ({match.events.length})
         </button>
@@ -207,6 +208,7 @@ export function LiveTracker({
           Pitar el final
         </button>
       </div>
+      <div className="h-16" />
 
       <Sheet
         open={pending !== null}
@@ -362,7 +364,7 @@ function ScoreSide({
 }) {
   return (
     <div className={`min-w-0 flex-1 ${align === "right" ? "text-right" : ""}`}>
-      <p className="truncate text-sm font-bold text-stone-100">
+      <p className="text-xs font-bold leading-tight text-stone-100">
         {align === "left" ? `${team.logo} ` : ""}
         {team.name}
         {align === "right" ? ` ${team.logo}` : ""}
