@@ -181,8 +181,13 @@ scripts/               setup.sh, dev.sh, build.sh
 
 ```bash
 cd backend && .venv/bin/python -m pytest -q
+python scripts/simular-liga.py
 ```
 
-Cubren el calculo de VAE, el Fondo Menor, los desempates de la clasificacion, la asignacion de
-patrocinadores con colisiones, la Red de Seguridad de Novatos, el flujo completo del partido y las
-protecciones del panel de comisario.
+`simular-liga.py` juega las 7 jornadas de la liga de ejemplo (28 partidos) por la API y escribe
+el acta. Usa una base temporal, asi que no toca `backend/liga.db`. La semilla es fija: el mismo
+campeon sale cada vez.
+
+Los tests cubren el calculo de VAE, el Fondo Menor, los desempates de la clasificacion, la
+asignacion de patrocinadores con colisiones, la Red de Seguridad de Novatos, el flujo completo del
+partido, una temporada entera y las protecciones del panel de comisario.
