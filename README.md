@@ -70,6 +70,48 @@ scripts/build.sh
 # los demas entran en http://<ip-del-portatil>:8000
 ```
 
+## Donde dejarla, sin pagar
+
+No hace falta otro servidor de base de datos. Toda la liga es el fichero SQLite
+`data/liga.db` (o `backend/liga.db` si arrancas sin Docker). Copiar ese fichero es la copia de
+seguridad. Supabase, Postgres o MySQL no aportan nada aqui: son otro servicio que mantener, y el
+plan gratuito de Supabase ademas pausa el proyecto si pasa un tiempo sin uso.
+
+La opcion que encaja con 8 personas y coste cero es tenerla en casa.
+
+1. **Misma WiFi, la noche del partido.** El portatil del anfitrion ejecuta la app y los moviles
+   entran por su IP local. No hay nada que abrir a internet.
+2. **Desde casa de cada uno, entre jornadas.** Deja la app en un equipo que pueda quedarse
+   encendido (ese portatil, un mini PC o una Raspberry Pi) e instala
+   [Tailscale](https://tailscale.com), que es gratis para uso personal. Cada entrenador entra en
+   la red de Tailscale y abre `http://<ip-tailscale>:8000`. No hace falta abrir puertos del router
+   ni comprar un dominio.
+3. **Un VPS en internet**, solo si no quieres ningun aparato encendido en casa. El plan Always Free
+   de Oracle Cloud da una maquina virtual con disco persistente sin coste. El disco tiene que ser
+   persistente: en los planes gratuitos de Render, Railway o Fly el disco se borra al reiniciar y
+   la liga desapareceria con el.
+
+Antes de exponerla fuera de tu WiFi cambia `SECRET_KEY`, `MASTER_KEY` y los PIN.
+
+### Docker
+
+La imagen mete el frontend y la API en un solo contenedor. El fichero de la liga queda en `./data`,
+fuera del contenedor, asi que actualizar la imagen no borra los partidos.
+
+```bash
+docker compose up -d --build
+# http://localhost:8000
+```
+
+La primera vez, si `data/liga.db` no existe, se crean los 8 equipos de ejemplo. Para guardar una
+copia:
+
+```bash
+cp data/liga.db "data/liga-$(date +%F).db"
+```
+
+Para empezar la liga de cero, para el contenedor, borra `data/liga.db` y vuelvelo a arrancar.
+
 ## Datos de ejemplo
 
 `seed.py` crea 8 equipos de razas distintas, cada uno con 11 jugadores construidos con un
@@ -174,7 +216,9 @@ frontend/
   src/app/             /, /equipo, /partido, /liga, /reglas, /admin
   src/components/      AppShell, PinPad, hojas inferiores y pasos del partido
   src/lib/             Cliente de API, tipos y hooks
-scripts/               setup.sh, dev.sh, build.sh
+Dockerfile             Imagen unica (frontend + API)
+docker-compose.yml     Arranque con el fichero de la liga en ./data
+scripts/               setup.sh, dev.sh, build.sh, docker-entrypoint.sh
 ```
 
 ## Tests

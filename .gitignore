@@ -6,10 +6,11 @@ venv/
 .pytest_cache/
 *.egg-info/
 
-# Base de datos local
+# Base de datos local. En Docker vive en ./data/liga.db
 backend/*.db
 backend/*.db-journal
 backend/.env
+data/
 
 # Node / Next.js
 node_modules/
