@@ -1,0 +1,270 @@
+{
+  "spp": {
+    "TD": 4,
+    "CAS": 2,
+    "PASS": 1,
+    "INT": 2,
+    "FOUL": 0,
+    "MVP": 4
+  },
+  "scoring": {
+    "win": 3,
+    "draw": 1,
+    "loss_by_one": 1,
+    "loss_by_more": 0,
+    "summary": "Victoria 3. Empate 1. Derrota por un solo touchdown 1. Derrota por más de un touchdown 0. Desempate: diferencia de touchdowns y, si sigue igual, diferencia de bajas."
+  },
+  "sideline": {
+    "assistant_coach": 10000,
+    "cheerleader": 10000,
+    "apothecary": 50000
+  },
+  "mercy": {
+    "rounds": [1, 2],
+    "summary": "Jornadas 1 y 2. Si un jugador muere o sufre una lesión permanente, la tesorería recupera el 100% de su valor en la primera baja de ese equipo, el 50% en la segunda y el 25% de la tercera en adelante. Un MNG (se pierde el siguiente partido) no cuenta para esta red."
+  },
+  "winnings": {
+    "die": 6,
+    "multiplier": 10000,
+    "summary": "Cada equipo tira 1d6 y suma a su tesorería el resultado × 10.000 monedas de oro."
+  },
+  "sponsor_auto_preference": ["sindicato", "tabernero", "carniceria", "prensa"],
+  "sponsors": [
+    {
+      "id": "prensa",
+      "name": "Prensa Amarilla",
+      "assigns": "Último clasificado.",
+      "benefit": "+1 de factor de afición mientras dura el patrocinio, y elige quién saca de inicio."
+    },
+    {
+      "id": "tabernero",
+      "name": "El Rincón del Tabernero",
+      "assigns": "Peor diferencia de touchdowns.",
+      "benefit": "Recupera un KO adicional y dispone de una segunda oportunidad gratis en cada partido."
+    },
+    {
+      "id": "carniceria",
+      "name": "Carnicería Da Boyz",
+      "assigns": "Más bajas causadas.",
+      "benefit": "Si causa 2 o más bajas en el partido, ingresa 20.000 monedas de oro."
+    },
+    {
+      "id": "sindicato",
+      "name": "Sindicato Malhechores",
+      "assigns": "Más faltas cometidas.",
+      "benefit": "Un soborno gratis en cada partido."
+    }
+  ],
+  "carniceria_bonus": 20000,
+  "carniceria_threshold": 2,
+  "weather": [
+    {
+      "min": 2,
+      "max": 2,
+      "name": "Calor asfixiante",
+      "summary": "El calor castiga a quien está en el suelo: cuesta más volver en sí. Recordatorio de mesa; el texto legal está en el libro."
+    },
+    {
+      "min": 3,
+      "max": 3,
+      "name": "Sol de justicia",
+      "summary": "El balón deslumbra. Los pases que no sean cortos salen peor parados."
+    },
+    {
+      "min": 4,
+      "max": 10,
+      "name": "Tiempo perfecto",
+      "summary": "Buen día para el deporte de la violencia. El clima no modifica el partido."
+    },
+    {
+      "min": 11,
+      "max": 11,
+      "name": "Lluvia intensa",
+      "summary": "El balón escurre: recogerlo, agarrarlo y retenerlo es más difícil."
+    },
+    {
+      "min": 12,
+      "max": 12,
+      "name": "Ventisca",
+      "summary": "Apenas se ve el balón. Los pases largos se pierden y es más fácil que el cuero se escurra."
+    }
+  ],
+  "kickoff": [
+    {
+      "min": 2,
+      "max": 2,
+      "name": "El árbitro lo ha visto",
+      "summary": "El colegiado señala una infracción grave antes de empezar. Cada bando puede intentar un soborno; si nadie lo compra, alguien marcha a las duchas."
+    },
+    {
+      "min": 3,
+      "max": 3,
+      "name": "Disturbio",
+      "summary": "El público se lía a golpes. El saque se retrasa y puede cambiar quién pone el balón en juego. Si la cosa se repite, el tiempo empeora."
+    },
+    {
+      "min": 4,
+      "max": 4,
+      "name": "Defensa perfecta",
+      "summary": "Quien recibe recoloca a su equipo entero antes de que el balón vuele."
+    },
+    {
+      "min": 5,
+      "max": 5,
+      "name": "Patada alta",
+      "summary": "El balón cuelga. Un receptor del equipo que recibe puede colocarse debajo, con el riesgo de que el cuero le baile."
+    },
+    {
+      "min": 6,
+      "max": 6,
+      "name": "Afición en pie",
+      "summary": "Las gradas empujan en una banda. Se tira para ver qué afición mete más ruido y ese equipo gana un empujón en la salida."
+    },
+    {
+      "min": 7,
+      "max": 7,
+      "name": "Cambia el tiempo",
+      "summary": "Nuffle se aburre del clima. Se vuelve a tirar la tabla de clima y se aplica el nuevo resultado."
+    },
+    {
+      "min": 8,
+      "max": 8,
+      "name": "Banquillo brillante",
+      "summary": "Los ayudantes gritan consignas. Se compara el banquillo y el mejor puede ganar una segunda oportunidad para esta mitad."
+    },
+    {
+      "min": 9,
+      "max": 9,
+      "name": "Salida rápida",
+      "summary": "Quien recibe puede mover un punto a algunos jugadores antes del saque, sin tocar al rival ni salir del campo propio de forma tramposa."
+    },
+    {
+      "min": 10,
+      "max": 10,
+      "name": "Blitz",
+      "summary": "Quien saca abre con un turno extra de ataque inmediato, con las limitaciones de un blitz de saque."
+    },
+    {
+      "min": 11,
+      "max": 11,
+      "name": "Pedrada",
+      "summary": "Vuela algo desde la grada. Un jugador al azar del bando señalado puede acabar en el suelo."
+    },
+    {
+      "min": 12,
+      "max": 12,
+      "name": "Invasión del campo",
+      "summary": "La afición salta al césped. Se compara el factor de hinchas y el perdedor puede ver a varios jugadores tirados antes de empezar."
+    }
+  ],
+  "prayers": [
+    {"roll": 1, "name": "Trampa traicionera", "summary": "Una casilla queda marcada. El primero que caiga ahí sufre el efecto extra de la plegaria."},
+    {"roll": 2, "name": "Amigo del árbitro", "summary": "El colegiado debe un favor: dispones de un margen sucio adicional en este partido."},
+    {"roll": 3, "name": "Estoque", "summary": "Un jugador de tu elección gana filo en sus placajes durante este encuentro."},
+    {"roll": 4, "name": "Hombre de hierro", "summary": "Un jugador ignora el primer resultado que debería dejarlo fuera de combate."},
+    {"roll": 5, "name": "Puños de acero", "summary": "Un jugador pega más duro: la armadura rival se defiende peor contra él."},
+    {"roll": 6, "name": "Mal hábito", "summary": "Un rival empieza el partido lastrado por un vicio. Elige el jugador afectado."},
+    {"roll": 7, "name": "Tacos engrasados", "summary": "Un rival pierde agarre y es más fácil tirarlo al suelo."},
+    {"roll": 8, "name": "Ídolo de Nuffle", "summary": "La reliquia inspira al equipo. Ganas un impulso en la próxima reacción del público."},
+    {"roll": 9, "name": "Fanático", "summary": "Un aficionado se cuela una vez como apoyo improvisado."},
+    {"roll": 10, "name": "Topos en el campo", "summary": "El césped cede. Un movimiento o un saque puede desviarse."},
+    {"roll": 11, "name": "Balón bendito", "summary": "El primer touchdown de tu equipo viene con un empujón de ánimo."},
+    {"roll": 12, "name": "Ojo de Nuffle", "summary": "Puedes repetir una tirada de un dado que ya hayas visto, una sola vez."},
+    {"roll": 13, "name": "Patada de la suerte", "summary": "La recepción del saque inicial de este drive es más amable."},
+    {"roll": 14, "name": "Grito de guerra", "summary": "Tus animadoras cuentan doble en la próxima comparación de grada."},
+    {"roll": 15, "name": "Piernas frescas", "summary": "Un jugador gana un punto de movimiento hasta el pitido final."},
+    {"roll": 16, "name": "Juicio del dios", "summary": "Nuffle concede a tu equipo una segunda oportunidad gratis en este partido."}
+  ],
+  "inducements": [
+    {
+      "id": "bribe",
+      "name": "Soborno",
+      "cost": 100000,
+      "max": 3,
+      "summary": "El árbitro puede no ver una expulsión. Solo vale para este partido."
+    },
+    {
+      "id": "keg",
+      "name": "Barril de Bloodweiser",
+      "cost": 50000,
+      "max": 2,
+      "summary": "Una reserva para que un jugador groggy vuelva antes al césped."
+    },
+    {
+      "id": "doctor",
+      "name": "Médico ambulante",
+      "cost": 100000,
+      "max": 1,
+      "summary": "Un facultativo extra contratado solo para este encuentro."
+    },
+    {
+      "id": "igor",
+      "name": "Igor",
+      "cost": 100000,
+      "max": 1,
+      "summary": "Asistente de callejón para quien no lleva apotecario en la plantilla."
+    },
+    {
+      "id": "chef",
+      "name": "Chef mediano",
+      "cost": 300000,
+      "max": 1,
+      "summary": "El banquete puede birlarle una segunda oportunidad al rival antes del saque."
+    },
+    {
+      "id": "wizard",
+      "name": "Mago",
+      "cost": 150000,
+      "max": 1,
+      "summary": "Un hechizo, fuego o rayo, una sola vez en el partido."
+    },
+    {
+      "id": "temp_cheer",
+      "name": "Animadoras temporales",
+      "cost": 20000,
+      "max": 4,
+      "summary": "Afición prestada que solo cuenta para este partido."
+    },
+    {
+      "id": "temp_assistant",
+      "name": "Ayudante temporal",
+      "cost": 20000,
+      "max": 3,
+      "summary": "Un técnico de alquiler para las repeticiones de hoy."
+    }
+  ],
+  "bounties": [
+    {
+      "id": "caza",
+      "name": "Caza mayor",
+      "summary": "Causa 2 o más bajas en el partido.",
+      "reward": 20000,
+      "metric": "cas",
+      "min": 2
+    },
+    {
+      "id": "festival",
+      "name": "Festival ofensivo",
+      "summary": "Anota 2 o más touchdowns.",
+      "reward": 20000,
+      "metric": "td",
+      "min": 2
+    },
+    {
+      "id": "muro",
+      "name": "El muro",
+      "summary": "No encajes ningún touchdown.",
+      "reward": 10000,
+      "metric": "clean_sheet",
+      "min": 1
+    },
+    {
+      "id": "sucio",
+      "name": "Juego sucio",
+      "summary": "Comete 2 o más faltas.",
+      "reward": 10000,
+      "metric": "fouls",
+      "min": 2
+    }
+  ]
+}

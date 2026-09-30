@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(240, 193, 77, 0.16), transparent 55%),
+    linear-gradient(180deg, #2a1812 0%, #120d0b 280px);
+  color: #f6ead8;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
