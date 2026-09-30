@@ -1,0 +1,13 @@
+# Un solo contenedor. La base de datos es el fichero ./data/liga.db del anfitrion.
+services:
+  liga:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Cambia estas dos antes de abrir la app fuera de tu casa.
+      SECRET_KEY: ${SECRET_KEY:-cambia-esta-clave}
+      MASTER_KEY: ${MASTER_KEY:-nuffle-2020}
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

@@ -24,5 +24,6 @@ npm install
 cd ..
 
 echo
-echo "Listo. Arranca la app en modo desarrollo con: scripts/dev.sh"
-echo "O genera el build de produccion con:          scripts/build.sh"
+echo "Listo."
+echo "  En tu PC:                  scripts/start.sh"
+echo "  En un servidor Ubuntu:     sudo bash scripts/install-server.sh"
