@@ -44,6 +44,26 @@ class EventType(str, Enum):
     MVP = "MVP"
 
 
+class ChronicleKind(str, Enum):
+    """Hechos que entran en el informe de la jornada."""
+
+    RESULT = "RESULT"
+    CONCESSION = "CONCESSION"
+    TD = "TD"
+    FOUL = "FOUL"
+    INT = "INT"
+    INJURY = "INJURY"
+    DEATH = "DEATH"
+    MERCY = "MERCY"
+    MVP = "MVP"
+    BOUNTY = "BOUNTY"
+    FANS = "FANS"
+    TAVERN = "TAVERN"
+    DISMISSAL = "DISMISSAL"
+    SIGNING = "SIGNING"
+    SPONSOR = "SPONSOR"
+
+
 class CasualtyResult(str, Enum):
     """Resultado de la tirada de heridas (BB2020)."""
 
@@ -290,6 +310,29 @@ class TreasurySpill(SQLModel, table=True):
     winnings: int
     treasury_before: int
     headline: str
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class ChronicleEntry(SQLModel, table=True):
+    """Un hecho de la jornada, listo para el informe semanal.
+
+    Los partidos reescriben sus filas al cerrar el acta. Los fichajes y los
+    despidos se quedan en la jornada del ultimo partido de ese equipo.
+    """
+
+    __tablename__ = "chronicleentry"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    round_number: int = Field(index=True)
+    match_id: Optional[int] = Field(default=None, foreign_key="match.id", index=True)
+    team_id: int = Field(foreign_key="team.id", index=True)
+    team_name: str
+    player_id: Optional[int] = Field(default=None, foreign_key="player.id")
+    player_name: str = ""
+    kind: ChronicleKind = Field(index=True)
+    headline: str
+    gold: Optional[int] = None
+    sort_order: int = 0
     created_at: datetime = Field(default_factory=utcnow)
 
 

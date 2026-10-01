@@ -126,22 +126,23 @@ def hire_player(
 
     current.treasury -= position["cost"]
     session.add(current)
-    session.add(
-        Player(
-            team_id=team_id,
-            number=number,
-            name=payload.name.strip()[:40] or position["name"],
-            position=position["name"],
-            ma=position["ma"],
-            st=position["st"],
-            ag=position["ag"],
-            pa=position.get("pa"),
-            av=position["av"],
-            skills=", ".join(position.get("skills", [])),
-            cost=position["cost"],
-            current_value=position["cost"],
-        )
+    player = Player(
+        team_id=team_id,
+        number=number,
+        name=payload.name.strip()[:40] or position["name"],
+        position=position["name"],
+        ma=position["ma"],
+        st=position["st"],
+        ag=position["ag"],
+        pa=position.get("pa"),
+        av=position["av"],
+        skills=", ".join(position.get("skills", [])),
+        cost=position["cost"],
+        current_value=position["cost"],
     )
+    session.add(player)
+    session.flush()
+    league_engine.record_signing(session, current, player)
     session.commit()
     session.refresh(current)
     return serializers.team_detail(session, current)
@@ -163,6 +164,7 @@ def fire_player(team_id: int, player_id: int, current: CurrentTeam, session: Ses
 
     # El despido devuelve el coste de contratacion, sin las mejoras.
     current.treasury += player.cost
+    league_engine.record_dismissal(session, current, player)
     player.status = PlayerStatus.RETIRED
     session.add(player)
     session.add(current)

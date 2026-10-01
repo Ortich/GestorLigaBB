@@ -7,7 +7,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.models import CasualtyResult, EventType, MatchStatus, PlayerStatus
+from app.models import CasualtyResult, ChronicleKind, EventType, MatchStatus, PlayerStatus
 
 
 # --------------------------------------------------------------------------- #
@@ -154,6 +154,21 @@ class TreasurySpillPublic(BaseModel):
     winnings: int
     treasury_before: int
     headline: str
+
+
+class ChronicleEntryPublic(BaseModel):
+    """Un hecho de la jornada, listo para el informe semanal."""
+
+    id: int
+    round_number: int
+    match_id: Optional[int] = None
+    team_id: int
+    team_name: str
+    player_id: Optional[int] = None
+    player_name: str = ""
+    kind: ChronicleKind
+    headline: str
+    gold: Optional[int] = None
 
 
 # --------------------------------------------------------------------------- #

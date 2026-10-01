@@ -531,6 +531,17 @@ def complete_match(
 
     spills = league_engine.record_treasury_spills(session, match, home_economy, away_economy)
     tavern = [spill.headline for spill in spills]
+    league_engine.write_match_chronicle(
+        session,
+        match,
+        home,
+        away,
+        home_economy=home_economy,
+        away_economy=away_economy,
+        spills=spills,
+        payouts=payouts,
+        bounty=bounty_payout,
+    )
 
     match.status = MatchStatus.COMPLETED
     match.completed_at = utcnow()
@@ -607,18 +618,24 @@ def _award_mvps(
 
 
 def _after_match_completed(session: Session, match: Match):
-    """Avanza la jornada si procede y reevalua los patrocinadores."""
+    """Avanza la jornada si procede, reevalua los patrocinadores y los anota."""
     state = league_engine.get_league_state(session)
     round_matches = session.exec(
         select(Match).where(Match.round_number == state.current_round)
     ).all()
+    finished_round = None
     if round_matches and all(m.status == MatchStatus.COMPLETED for m in round_matches):
+        finished_round = state.current_round
         if state.current_round < state.total_rounds:
             state.current_round += 1
             session.add(state)
             session.commit()
 
-    return league_engine.assign_sponsors(session, apply=True)
+    assignments = league_engine.assign_sponsors(session, apply=True)
+    if finished_round is not None:
+        league_engine.write_sponsor_chronicle(session, finished_round, assignments)
+        session.commit()
+    return assignments
 
 
 # --------------------------------------------------------------------------- #
