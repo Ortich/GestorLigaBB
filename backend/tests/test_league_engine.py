@@ -3,7 +3,19 @@ from __future__ import annotations
 from sqlmodel import select
 
 from app import league_engine
-from app.models import EventType, Match, MatchEvent, MatchStatus, PlayerStatus, Sponsor, Team
+from app.models import (
+    CasualtyResult,
+    ChronicleEntry,
+    ChronicleKind,
+    EventType,
+    Match,
+    MatchEvent,
+    MatchStatus,
+    PlayerStatus,
+    Sponsor,
+    Team,
+)
+from app.schemas import SponsorAssignment
 from tests.conftest import add_players, make_match, make_team, seed_sponsors
 
 
@@ -189,6 +201,104 @@ def test_sponsor_se_persiste_en_el_equipo(session):
     assert len(with_sponsor) == 4
     sponsor_ids = [t.current_sponsor_id for t in with_sponsor]
     assert len(set(sponsor_ids)) == 4
+
+
+def test_la_cronica_de_patrocinadores_empieza_en_la_jornada_3(session):
+    team = make_team(session, "Alpha")
+    assignment = SponsorAssignment(
+        sponsor_code="PRENSA_AMARILLA",
+        sponsor_name="Prensa Amarilla",
+        team_id=team.id,
+        team_name=team.name,
+        metric="standings",
+        metric_value=0,
+        reason="ultimo de la tabla",
+    )
+
+    assert league_engine.write_sponsor_chronicle(session, 2, [assignment]) == []
+    session.commit()
+    assert session.exec(select(ChronicleEntry)).all() == []
+
+    league_engine.write_sponsor_chronicle(session, 3, [assignment])
+    session.commit()
+    league_engine.write_sponsor_chronicle(session, 3, [assignment])
+    session.commit()
+
+    rows = session.exec(select(ChronicleEntry).where(ChronicleEntry.round_number == 3)).all()
+    assert len(rows) == 1
+    assert rows[0].kind == ChronicleKind.SPONSOR
+    assert rows[0].headline == "Prensa Amarilla se queda con Alpha (ultimo de la tabla)."
+
+
+def test_la_cronica_del_partido_se_reescribe_y_omite_el_ruido(session):
+    home = make_team(session, "Reavers")
+    away = make_team(session, "Gouged Eye")
+    scorer = add_players(session, home, 1)[0]
+    victim = add_players(session, away, 1)[0]
+    match = make_match(
+        session, home, away, 1, status=MatchStatus.COMPLETED, home_td=1, away_td=0
+    )
+    match.home_mvp_player_id = scorer.id
+    session.add(match)
+    session.add(
+        MatchEvent(
+            match_id=match.id, team_id=home.id, player_id=scorer.id, event_type=EventType.TD
+        )
+    )
+    session.add(
+        MatchEvent(
+            match_id=match.id, team_id=home.id, player_id=scorer.id, event_type=EventType.PASS
+        )
+    )
+    session.add(
+        MatchEvent(
+            match_id=match.id,
+            team_id=home.id,
+            player_id=scorer.id,
+            victim_player_id=victim.id,
+            event_type=EventType.CAS,
+            casualty_result=CasualtyResult.BADLY_HURT,
+        )
+    )
+    session.commit()
+
+    def economy(team: Team, fans_before: int, fans_after: int) -> league_engine.SideEconomy:
+        return league_engine.SideEconomy(
+            team_id=team.id or 0,
+            team_name=team.name,
+            winnings_roll=4,
+            fans_used=1,
+            winner_bonus=1,
+            winnings=60_000,
+            discarded=0,
+            treasury=150_000,
+            fans_before=fans_before,
+            fans_roll=8,
+            fans_after=fans_after,
+            conceded=False,
+            message="",
+        )
+
+    kwargs = dict(
+        home_economy=economy(home, 1, 2),
+        away_economy=economy(away, 1, 1),
+        spills=[],
+        payouts=[],
+        bounty=None,
+    )
+    league_engine.write_match_chronicle(session, match, home, away, **kwargs)
+    session.commit()
+    league_engine.write_match_chronicle(session, match, home, away, **kwargs)
+    session.commit()
+
+    rows = session.exec(select(ChronicleEntry).where(ChronicleEntry.match_id == match.id)).all()
+    kinds = [row.kind for row in rows]
+    assert kinds.count(ChronicleKind.RESULT) == 1
+    assert kinds.count(ChronicleKind.TD) == 1
+    assert kinds.count(ChronicleKind.MVP) == 1
+    assert kinds.count(ChronicleKind.FANS) == 1
+    assert ChronicleKind.INJURY not in kinds
+    assert all(row.kind != ChronicleKind.TD or "anota" in row.headline for row in rows)
 
 
 def test_carniceria_va_al_equipo_con_mas_bajas(session):

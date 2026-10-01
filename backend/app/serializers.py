@@ -9,6 +9,7 @@ from sqlmodel import Session, select
 from app import league_engine, rules
 from app.models import (
     Bounty,
+    ChronicleEntry,
     LeagueState,
     Match,
     MatchEvent,
@@ -20,6 +21,7 @@ from app.models import (
 )
 from app.schemas import (
     BountyPublic,
+    ChronicleEntryPublic,
     InducementPublic,
     LeagueStatePublic,
     MatchDetail,
@@ -82,6 +84,21 @@ def bounty_public(bounty: Optional[Bounty]) -> Optional[BountyPublic]:
         name=bounty.name,
         description=bounty.description,
         reward_gold=bounty.reward_gold,
+    )
+
+
+def chronicle_public(entry: ChronicleEntry) -> ChronicleEntryPublic:
+    return ChronicleEntryPublic(
+        id=entry.id or 0,
+        round_number=entry.round_number,
+        match_id=entry.match_id,
+        team_id=entry.team_id,
+        team_name=entry.team_name,
+        player_id=entry.player_id,
+        player_name=entry.player_name,
+        kind=entry.kind,
+        headline=entry.headline,
+        gold=entry.gold,
     )
 
 

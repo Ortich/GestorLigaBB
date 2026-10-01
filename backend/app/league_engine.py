@@ -23,6 +23,9 @@ from app import rules
 from app.errors import LeagueError
 from app.models import (
     Bounty,
+    CasualtyResult,
+    ChronicleEntry,
+    ChronicleKind,
     EventType,
     LeagueState,
     Match,
@@ -270,6 +273,404 @@ def record_treasury_spills(
         )
         session.add(spill)
         created.append(spill)
+    return created
+
+
+# Hechos del partido que se reescriben al cerrar el acta. Fichajes y despidos no.
+MATCH_CHRONICLE_KINDS = (
+    ChronicleKind.RESULT,
+    ChronicleKind.CONCESSION,
+    ChronicleKind.TD,
+    ChronicleKind.FOUL,
+    ChronicleKind.INT,
+    ChronicleKind.INJURY,
+    ChronicleKind.DEATH,
+    ChronicleKind.MERCY,
+    ChronicleKind.MVP,
+    ChronicleKind.BOUNTY,
+    ChronicleKind.FANS,
+    ChronicleKind.TAVERN,
+)
+
+_KIND_ORDER = {kind: index * 10 for index, kind in enumerate(ChronicleKind)}
+
+_CASUALTY_EFFECT = {
+    CasualtyResult.BADLY_HURT: "Sin secuelas",
+    CasualtyResult.SERIOUSLY_HURT: "Se pierde el proximo partido",
+    CasualtyResult.SERIOUS_INJURY: "Lesion persistente",
+    CasualtyResult.LASTING_INJURY_MA: "-1 MA",
+    CasualtyResult.LASTING_INJURY_ST: "-1 ST",
+    CasualtyResult.LASTING_INJURY_AG: "-1 AG",
+    CasualtyResult.LASTING_INJURY_PA: "-1 PA",
+    CasualtyResult.LASTING_INJURY_AV: "-1 AV",
+    CasualtyResult.DEAD: "Muerto",
+}
+
+
+def chronicle_round_for_team(session: Session, team_id: int) -> int:
+    """Jornada a la que pertenece un fichaje o un despido.
+
+    Es la del ultimo partido ya jugado por ese equipo: el cambio sale de esa semana.
+    Si todavia no ha jugado, cae en la jornada en curso.
+    """
+    last = session.exec(
+        select(Match)
+        .where(Match.status == MatchStatus.COMPLETED)
+        .where((Match.home_team_id == team_id) | (Match.away_team_id == team_id))
+        .order_by(Match.round_number.desc(), Match.id.desc())
+    ).first()
+    if last is not None:
+        return last.round_number
+    return get_league_state(session).current_round
+
+
+def _chronicle(
+    *,
+    round_number: int,
+    team_id: int,
+    team_name: str,
+    kind: ChronicleKind,
+    headline: str,
+    match_id: Optional[int] = None,
+    player_id: Optional[int] = None,
+    player_name: str = "",
+    gold: Optional[int] = None,
+) -> ChronicleEntry:
+    return ChronicleEntry(
+        round_number=round_number,
+        match_id=match_id,
+        team_id=team_id,
+        team_name=team_name,
+        player_id=player_id,
+        player_name=player_name,
+        kind=kind,
+        headline=headline,
+        gold=gold,
+        sort_order=_KIND_ORDER[kind],
+    )
+
+
+def _replace_chronicle(
+    session: Session,
+    *,
+    round_number: Optional[int] = None,
+    match_id: Optional[int] = None,
+    kinds: tuple[ChronicleKind, ...],
+) -> None:
+    query = select(ChronicleEntry).where(ChronicleEntry.kind.in_(kinds))  # type: ignore[attr-defined]
+    if match_id is not None:
+        query = query.where(ChronicleEntry.match_id == match_id)
+    if round_number is not None:
+        query = query.where(ChronicleEntry.round_number == round_number)
+    previous = session.exec(query).all()
+    for row in previous:
+        session.delete(row)
+    if previous:
+        session.flush()
+
+
+def dismissal_headline(team_name: str, player: Player) -> str:
+    refund = format_gold(player.cost)
+    if player.current_value != player.cost:
+        return (
+            f"{team_name} despide a {player.name} "
+            f"(valía {format_gold(player.current_value)}) y recupera {refund} de coste base."
+        )
+    return f"{team_name} despide a {player.name} y recupera {refund}."
+
+
+def record_dismissal(session: Session, team: Team, player: Player) -> ChronicleEntry:
+    match_round = chronicle_round_for_team(session, team.id or 0)
+    last = session.exec(
+        select(Match)
+        .where(Match.status == MatchStatus.COMPLETED)
+        .where((Match.home_team_id == team.id) | (Match.away_team_id == team.id))
+        .order_by(Match.round_number.desc(), Match.id.desc())
+    ).first()
+    entry = _chronicle(
+        round_number=match_round,
+        match_id=last.id if last is not None else None,
+        team_id=team.id or 0,
+        team_name=team.name,
+        player_id=player.id,
+        player_name=player.name,
+        kind=ChronicleKind.DISMISSAL,
+        headline=dismissal_headline(team.name, player),
+        gold=player.cost,
+    )
+    session.add(entry)
+    return entry
+
+
+def record_signing(session: Session, team: Team, player: Player) -> ChronicleEntry:
+    match_round = chronicle_round_for_team(session, team.id or 0)
+    last = session.exec(
+        select(Match)
+        .where(Match.status == MatchStatus.COMPLETED)
+        .where((Match.home_team_id == team.id) | (Match.away_team_id == team.id))
+        .order_by(Match.round_number.desc(), Match.id.desc())
+    ).first()
+    entry = _chronicle(
+        round_number=match_round,
+        match_id=last.id if last is not None else None,
+        team_id=team.id or 0,
+        team_name=team.name,
+        player_id=player.id,
+        player_name=player.name,
+        kind=ChronicleKind.SIGNING,
+        headline=(
+            f"{team.name} contrata a {player.name}, {player.position}, por {format_gold(player.cost)}."
+        ),
+        gold=player.cost,
+    )
+    session.add(entry)
+    return entry
+
+
+def write_sponsor_chronicle(
+    session: Session, round_number: int, assignments: list[SponsorAssignment]
+) -> list[ChronicleEntry]:
+    """Foto de los patrocinadores al cerrar una jornada, desde la jornada 3."""
+    first_round = int(rules.sponsor_rules().get("first_round", 3))
+    if round_number < first_round:
+        return []
+    _replace_chronicle(session, round_number=round_number, kinds=(ChronicleKind.SPONSOR,))
+    created: list[ChronicleEntry] = []
+    for assignment in assignments:
+        if assignment.team_id is None or not assignment.team_name:
+            continue
+        reason = f" ({assignment.reason})" if assignment.reason else ""
+        entry = _chronicle(
+            round_number=round_number,
+            team_id=assignment.team_id,
+            team_name=assignment.team_name,
+            kind=ChronicleKind.SPONSOR,
+            headline=f"{assignment.sponsor_name} se queda con {assignment.team_name}{reason}.",
+        )
+        session.add(entry)
+        created.append(entry)
+    return created
+
+
+def write_match_chronicle(
+    session: Session,
+    match: Match,
+    home: Team,
+    away: Team,
+    *,
+    home_economy: SideEconomy,
+    away_economy: SideEconomy,
+    spills: list[TreasurySpill],
+    payouts: list[dict[str, Any]],
+    bounty: Optional[dict[str, Any]],
+) -> list[ChronicleEntry]:
+    """Sustituye el relato de este partido. Lo ya fichado o despedido no se toca."""
+    if match.id is None:
+        return []
+    _replace_chronicle(session, match_id=match.id, kinds=MATCH_CHRONICLE_KINDS)
+
+    teams = {home.id: home, away.id: away}
+    events = session.exec(
+        select(MatchEvent).where(MatchEvent.match_id == match.id).order_by(MatchEvent.id)
+    ).all()
+    player_ids = {
+        pid
+        for event in events
+        for pid in (event.player_id, event.victim_player_id)
+        if pid is not None
+    }
+    player_ids.update(
+        pid for pid in (match.home_mvp_player_id, match.away_mvp_player_id) if pid is not None
+    )
+    players = {
+        player.id: player
+        for player in (
+            session.exec(select(Player).where(Player.id.in_(player_ids))).all()  # type: ignore[attr-defined]
+            if player_ids
+            else []
+        )
+    }
+
+    created: list[ChronicleEntry] = []
+
+    def add(entry: ChronicleEntry) -> None:
+        session.add(entry)
+        created.append(entry)
+
+    add(
+        _chronicle(
+            round_number=match.round_number,
+            match_id=match.id,
+            team_id=home.id or 0,
+            team_name=home.name,
+            kind=ChronicleKind.RESULT,
+            headline=f"{home.name} {match.home_td}–{match.away_td} {away.name}.",
+        )
+    )
+
+    if match.conceded_by_team_id is not None:
+        conceder = home if match.conceded_by_team_id == home.id else away
+        rival = away if conceder is home else home
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=conceder.id or 0,
+                team_name=conceder.name,
+                kind=ChronicleKind.CONCESSION,
+                headline=(
+                    f"{conceder.name} concede contra {rival.name}. "
+                    "Se van sin oro y pierden un hincha."
+                ),
+            )
+        )
+
+    for event in events:
+        team = teams.get(event.team_id)
+        if team is None or event.event_type not in (EventType.TD, EventType.FOUL, EventType.INT):
+            continue
+        player = players.get(event.player_id) if event.player_id else None
+        player_name = player.name if player is not None else ""
+        who = player_name or team.name
+        if event.event_type == EventType.TD:
+            headline = f"{who} anota para {team.name}."
+            kind = ChronicleKind.TD
+        elif event.event_type == EventType.FOUL:
+            headline = f"{who} comete una falta con {team.name}."
+            kind = ChronicleKind.FOUL
+        else:
+            headline = f"{who} intercepta un pase para {team.name}."
+            kind = ChronicleKind.INT
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=team.id or 0,
+                team_name=team.name,
+                player_id=event.player_id,
+                player_name=player_name,
+                kind=kind,
+                headline=headline,
+            )
+        )
+
+    for event in events:
+        if event.event_type != EventType.CAS or event.casualty_result is None:
+            continue
+        effect = _CASUALTY_EFFECT.get(event.casualty_result, "")
+        if effect == "Sin secuelas":
+            continue
+        victim = players.get(event.victim_player_id) if event.victim_player_id else None
+        if victim is None:
+            continue
+        victim_team = session.get(Team, victim.team_id)
+        team_name = victim_team.name if victim_team is not None else ""
+        kind = ChronicleKind.DEATH if event.casualty_result == CasualtyResult.DEAD else ChronicleKind.INJURY
+        if kind == ChronicleKind.DEATH:
+            headline = f"{victim.name} ({team_name}) muere en el campo."
+        else:
+            headline = f"{victim.name} ({team_name}) queda lesionado: {effect}."
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=victim.team_id,
+                team_name=team_name,
+                player_id=victim.id,
+                player_name=victim.name,
+                kind=kind,
+                headline=headline,
+            )
+        )
+
+    for payout in payouts:
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=payout["team_id"],
+                team_name=payout["team_name"],
+                player_name=payout.get("player_name", ""),
+                kind=ChronicleKind.MERCY,
+                headline=(
+                    f"{payout['team_name']} cobra {format_gold(payout['gold'])} "
+                    f"de la Red de Seguridad por la muerte de {payout['player_name']}."
+                ),
+                gold=payout["gold"],
+            )
+        )
+
+    for team, player_id in (
+        (home, match.home_mvp_player_id),
+        (away, match.away_mvp_player_id),
+    ):
+        if player_id is None:
+            continue
+        player = players.get(player_id)
+        player_name = player.name if player is not None else ""
+        who = player_name or "Un jugador"
+        extra = ""
+        if match.conceded_by_team_id not in (None, team.id):
+            extra = " Se lleva tambien el MVP del rival, que concedio."
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=team.id or 0,
+                team_name=team.name,
+                player_id=player_id,
+                player_name=player_name,
+                kind=ChronicleKind.MVP,
+                headline=f"{who} es el MVP de {team.name}.{extra}",
+            )
+        )
+
+    if bounty is not None:
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=bounty["team_id"],
+                team_name=bounty["team_name"],
+                kind=ChronicleKind.BOUNTY,
+                headline=(
+                    f"{bounty['team_name']} cumple {bounty['bounty']} "
+                    f"y cobra {format_gold(bounty['gold'])}."
+                ),
+                gold=bounty["gold"],
+            )
+        )
+
+    for side in (home_economy, away_economy):
+        if side.fans_after == side.fans_before:
+            continue
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=side.team_id,
+                team_name=side.team_name,
+                kind=ChronicleKind.FANS,
+                headline=(
+                    f"La afición de {side.team_name} pasa de {side.fans_before} a {side.fans_after}."
+                ),
+            )
+        )
+
+    names = {side.team_id: side.team_name for side in (home_economy, away_economy)}
+    for spill in spills:
+        add(
+            _chronicle(
+                round_number=match.round_number,
+                match_id=match.id,
+                team_id=spill.team_id,
+                team_name=names.get(spill.team_id, ""),
+                kind=ChronicleKind.TAVERN,
+                headline=spill.headline,
+                gold=spill.gold_lost,
+            )
+        )
+
     return created
 
 

@@ -7,8 +7,15 @@ from sqlmodel import select
 
 from app import league_engine, rules, serializers
 from app.deps import SessionDep
-from app.models import Bounty, Sponsor, TreasurySpill
-from app.schemas import BountyPublic, LeagueStatePublic, SponsorPublic, StandingRow, TreasurySpillPublic
+from app.models import Bounty, ChronicleEntry, ChronicleKind, Sponsor, TreasurySpill
+from app.schemas import (
+    BountyPublic,
+    ChronicleEntryPublic,
+    LeagueStatePublic,
+    SponsorPublic,
+    StandingRow,
+    TreasurySpillPublic,
+)
 
 router = APIRouter(prefix="/api/league", tags=["liga"])
 
@@ -49,6 +56,23 @@ def treasury_spills(session: SessionDep, round_number: Optional[int] = None) -> 
         query = query.where(TreasurySpill.round_number == round_number)
     rows = session.exec(query).all()
     return [serializers.spill_public(session, row) for row in rows]
+
+
+@router.get("/chronicle", response_model=list[ChronicleEntryPublic])
+def chronicle(
+    session: SessionDep,
+    round_number: Optional[int] = None,
+    kind: Optional[ChronicleKind] = None,
+) -> list[ChronicleEntryPublic]:
+    """Hechos de la temporada, o de una jornada, en el orden del informe."""
+    query = select(ChronicleEntry).order_by(
+        ChronicleEntry.round_number, ChronicleEntry.sort_order, ChronicleEntry.id
+    )
+    if round_number is not None:
+        query = query.where(ChronicleEntry.round_number == round_number)
+    if kind is not None:
+        query = query.where(ChronicleEntry.kind == kind)
+    return [serializers.chronicle_public(row) for row in session.exec(query).all()]
 
 
 @router.get("/bounties", response_model=list[BountyPublic])

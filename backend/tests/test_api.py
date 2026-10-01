@@ -194,6 +194,48 @@ def test_flujo_completo_de_partido(client, session, duel):
     assert standings[0]["points"] == 3
     assert standings[1]["points"] == 1  # derrota por 1 TD
 
+    # El acta es el unico partido de la jornada 1, asi que la liga ya va por la 2.
+    # Fichajes y despidos se quedan igual en la 1: salen de ese partido.
+    assert client.get("/api/league/state").json()["current_round"] == 2
+    week = client.get("/api/league/chronicle", params={"round_number": 1}).json()
+    assert week[0]["kind"] == "RESULT"
+    assert week[0]["headline"] == "Reavers 1–0 Gouged Eye."
+    by_kind: dict[str, list[str]] = {}
+    for row in week:
+        by_kind.setdefault(row["kind"], []).append(row["headline"])
+    assert by_kind["TD"] == ["Reavers 1 anota para Reavers."]
+    assert by_kind["INJURY"] == [
+        "Gouged Eye 1 (Gouged Eye) queda lesionado: Se pierde el proximo partido."
+    ]
+    assert by_kind["MVP"] == ["Reavers 1 es el MVP de Reavers."]
+    assert len(by_kind["TAVERN"]) == 2
+    assert len(by_kind["FANS"]) == 2
+    assert "FOUL" not in by_kind
+    assert "BOUNTY" not in by_kind
+    assert client.get("/api/league/chronicle", params={"round_number": 1, "kind": "TD"}).json()[0][
+        "player_name"
+    ] == "Reavers 1"
+
+    away_headers = auth(client, away.id, "2222")
+    fired = client.delete(f"/api/teams/{away.id}/players/{victim.id}", headers=away_headers)
+    assert fired.status_code == 200, fired.text
+    hired = client.post(
+        f"/api/teams/{away.id}/players",
+        headers=away_headers,
+        json={"position_code": "HU_LINE", "name": "Recambio"},
+    )
+    assert hired.status_code == 200, hired.text
+
+    week = client.get("/api/league/chronicle", params={"round_number": 1}).json()
+    by_kind = {}
+    for row in week:
+        by_kind.setdefault(row["kind"], []).append(row["headline"])
+    assert by_kind["DISMISSAL"] == ["Gouged Eye despide a Gouged Eye 1 y recupera 50.000 mo."]
+    assert by_kind["SIGNING"] == [
+        "Gouged Eye contrata a Recambio, Liniero Humano, por 50.000 mo."
+    ]
+    assert client.get("/api/league/chronicle", params={"round_number": 2}).json() == []
+
 
 def test_transicion_invalida_devuelve_400(client, duel):
     headers = auth(client, duel["home"].id, "1111")

@@ -125,6 +125,12 @@ Los hinchas dedicados empiezan en 1 y se pueden comprar hasta 3 al crear el equi
 
 Al cerrar el acta cada equipo tira 1D6 y le suma sus hinchas de ese momento. El ganador suma 1 mas. El total, multiplicado por 10.000, entra en la tesoreria. Si el empate, ninguno lleva ese +1. Despues, si la tesoreria pasa de 150.000, se queda en 150.000 y el exceso se gasta en la taberna. Cada perdida queda registrada (jornada, equipo, oro y un titular) y se consulta con `GET /api/league/spills?round_number=3`.
 
+### Informe de la jornada
+
+El mismo cierre deja el diario de esa semana: resultado, touchdowns, faltas, intercepciones, lesiones con efecto, muertes, Red de Seguridad, MVP, recompensa, cambio de hinchas y el oro de la taberna. Los pases y las heridas sin secuelas no entran. Despidos y fichajes se anotan en la jornada del ultimo partido de ese equipo. Los patrocinadores se fotografian al cerrar la jornada, desde la 3.
+
+`GET /api/league/chronicle?round_number=3` devuelve esa semana, ordenada para el panfleto. `kind=TD` se queda solo con los touchdowns.
+
 La aficion se actualiza despues de cobrar, con un 2D6 comparado con los hinchas de antes:
 
 * el ganador suma 1 si saca su aficion o mas;
