@@ -98,6 +98,7 @@ def test_muertes_y_despidos_no_disparan_el_oro(client):
                 f"{caja.team} en la jornada {acta.round_number}: "
                 f"la tesoreria cambia {caja.delta} y las partidas suman {caja.explicado}"
             )
+            assert caja.taberna == max(0, caja.antes + caja.ganancias - 150_000), (caja.team, caja)
             fila = por_equipo.setdefault(
                 caja.team,
                 {
@@ -106,13 +107,19 @@ def test_muertes_y_despidos_no_disparan_el_oro(client):
                     "ganancias": 0,
                     "recompensa": 0,
                     "plantilla": 0,
+                    "taberna": 0,
                 },
             )
             fila["despues"] = caja.despues
             fila["ganancias"] += caja.ganancias
             fila["recompensa"] += caja.recompensa
             fila["plantilla"] += caja.plantilla
+            fila["taberna"] += caja.taberna
 
     for nombre, fila in por_equipo.items():
         assert fila["plantilla"] == 0, (nombre, fila)
-        assert fila["despues"] - fila["antes"] == fila["ganancias"] + fila["recompensa"], (nombre, fila)
+        assert fila["despues"] - fila["antes"] == fila["ganancias"] + fila["recompensa"] - fila["taberna"], (
+            nombre,
+            fila,
+        )
+        assert fila["taberna"] > 0, (nombre, fila)

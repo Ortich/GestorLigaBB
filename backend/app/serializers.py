@@ -16,6 +16,7 @@ from app.models import (
     Player,
     Sponsor,
     Team,
+    TreasurySpill,
 )
 from app.schemas import (
     BountyPublic,
@@ -28,6 +29,7 @@ from app.schemas import (
     SponsorPublic,
     TeamDetail,
     TeamSummary,
+    TreasurySpillPublic,
 )
 
 
@@ -83,6 +85,28 @@ def bounty_public(bounty: Optional[Bounty]) -> Optional[BountyPublic]:
     )
 
 
+def spill_public(session: Session, spill: TreasurySpill) -> TreasurySpillPublic:
+    team = session.get(Team, spill.team_id)
+    match = session.get(Match, spill.match_id)
+    opponent_name = ""
+    if match is not None:
+        opponent_id = match.away_team_id if match.home_team_id == spill.team_id else match.home_team_id
+        opponent = session.get(Team, opponent_id)
+        opponent_name = opponent.name if opponent is not None else ""
+    return TreasurySpillPublic(
+        id=spill.id or 0,
+        round_number=spill.round_number,
+        match_id=spill.match_id,
+        team_id=spill.team_id,
+        team_name=team.name if team is not None else "",
+        opponent_name=opponent_name,
+        gold_lost=spill.gold_lost,
+        winnings=spill.winnings,
+        treasury_before=spill.treasury_before,
+        headline=spill.headline,
+    )
+
+
 def team_summary(session: Session, team: Team) -> TeamSummary:
     sponsor = session.get(Sponsor, team.current_sponsor_id) if team.current_sponsor_id else None
     return TeamSummary(
@@ -93,6 +117,7 @@ def team_summary(session: Session, team: Team) -> TeamSummary:
         logo=team.logo,
         treasury=team.treasury,
         ctv=league_engine.compute_ctv(session, team).total,
+        fans=team.fans,
         current_sponsor_id=team.current_sponsor_id,
         current_sponsor=sponsor_public(sponsor),
     )
@@ -240,6 +265,15 @@ def match_detail(session: Session, match: Match) -> MatchDetail:
         away_winnings=match.away_winnings,
         home_winnings_roll=match.home_winnings_roll,
         away_winnings_roll=match.away_winnings_roll,
+        home_fans_roll=match.home_fans_roll,
+        away_fans_roll=match.away_fans_roll,
+        home_fans_before=match.home_fans_before,
+        away_fans_before=match.away_fans_before,
+        home_fans_after=match.home_fans_after,
+        away_fans_after=match.away_fans_after,
+        home_gold_discarded=match.home_gold_discarded,
+        away_gold_discarded=match.away_gold_discarded,
+        conceded_by_team_id=match.conceded_by_team_id,
         home_mvp_player_id=match.home_mvp_player_id,
         away_mvp_player_id=match.away_mvp_player_id,
         inducements=[inducement_public(i) for i in inducements],

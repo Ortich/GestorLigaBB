@@ -235,7 +235,11 @@ function StaffSheet({
             <button
               type="button"
               className="btn btn-secondary btn-sm"
-              disabled={busy || (row.item === "APOTHECARY" && team.apothecary)}
+              disabled={
+                busy ||
+                (row.item === "APOTHECARY" && team.apothecary) ||
+                (row.item === "FAN" && team.fans >= 3)
+              }
               onClick={() => buy(row.item, 1)}
             >
               Comprar
@@ -244,7 +248,9 @@ function StaffSheet({
         ))}
       </div>
       <p className="text-xs text-stone-500">
-        Las Segundas Oportunidades compradas despues de crear el equipo cuestan el doble.
+        Las Segundas Oportunidades compradas despues de crear el equipo cuestan el doble. Los
+        hinchas se compran hasta 3 al crear el equipo; despues solo cambian con el resultado del
+        partido, entre 1 y 7.
       </p>
     </Sheet>
   );

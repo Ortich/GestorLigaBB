@@ -6,6 +6,7 @@ Contiene toda la logica de negocio de Blood Bowl que NO depende de HTTP:
 * Tabla de clasificacion con el sistema de puntos y los desempates.
 * Reasignacion de los 4 patrocinadores dinamicos (mecanica de catch-up).
 * Red de Seguridad de Novatos (Mercy Rule).
+* Economia de cierre: ganancias segun hinchas, fluctuacion de aficion y tope de tesoreria.
 * Recalculo integral de la liga a partir del historial de eventos.
 """
 
@@ -13,11 +14,13 @@ from __future__ import annotations
 
 import random
 from collections import defaultdict
+from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
 from sqlmodel import Session, select
 
 from app import rules
+from app.errors import LeagueError
 from app.models import (
     Bounty,
     EventType,
@@ -29,6 +32,7 @@ from app.models import (
     PlayerStatus,
     Sponsor,
     Team,
+    TreasurySpill,
 )
 from app.schemas import CtvBreakdown, SponsorAssignment, StandingRow
 
@@ -54,6 +58,279 @@ def roll_d16(rng: Optional[random.Random] = None) -> int:
 
 def roll_d6(rng: Optional[random.Random] = None) -> int:
     return roll_dice(6, 1, rng)
+
+
+# --------------------------------------------------------------------------- #
+# Economia de cierre
+# --------------------------------------------------------------------------- #
+FAN_MIN = 1
+FAN_MAX = 7
+FAN_PURCHASE_MAX = 3
+TREASURY_CAP = 150_000
+WINNINGS_MULTIPLIER = 10_000
+TAVERN_NOTE = "Tus jugadores se han gastado el exceso de oro en la taberna local"
+
+# Resultado economico de un equipo: victoria, derrota, empate o concesion.
+Outcome = str
+
+
+@dataclass
+class SideEconomy:
+    """Oro y aficion de un equipo al cerrar el acta."""
+
+    team_id: int
+    team_name: str
+    winnings_roll: int
+    fans_used: int
+    winner_bonus: int
+    winnings: int
+    discarded: int
+    treasury: int
+    fans_before: int
+    fans_roll: Optional[int]
+    fans_after: int
+    conceded: bool
+    message: str
+
+
+def clamp_dedicated_fans(value: int) -> int:
+    """Los hinchas dedicados viven siempre entre 1 y 7."""
+    return max(FAN_MIN, min(FAN_MAX, int(value)))
+
+
+def _require_d6(value: Optional[int], rng: Optional[random.Random], label: str) -> int:
+    rolled = roll_d6(rng) if value is None else value
+    if not 1 <= rolled <= 6:
+        raise LeagueError(f"La tirada de ganancias del equipo {label} debe estar entre 1 y 6.")
+    return rolled
+
+
+def _require_2d6(value: Optional[int], rng: Optional[random.Random], label: str) -> int:
+    rolled = roll_2d6(rng) if value is None else value
+    if not 2 <= rolled <= 12:
+        raise LeagueError(f"La tirada de hinchas del equipo {label} es 2D6 y debe estar entre 2 y 12.")
+    return rolled
+
+
+def match_outcomes(
+    home_td: int,
+    away_td: int,
+    *,
+    conceded_by: Optional[int],
+    home_id: int,
+    away_id: int,
+) -> tuple[Outcome, Outcome]:
+    """Quien gana, pierde o concede. La concesion manda sobre el marcador."""
+    if conceded_by is not None and conceded_by not in (home_id, away_id):
+        raise LeagueError("El equipo que concede no juega este partido.")
+    if conceded_by == home_id:
+        return "concede", "win"
+    if conceded_by == away_id:
+        return "win", "concede"
+    if home_td > away_td:
+        return "win", "loss"
+    if away_td > home_td:
+        return "loss", "win"
+    return "draw", "draw"
+
+
+def winnings_formula(d6: int, dedicated_fans: int, outcome: Outcome) -> tuple[int, int]:
+    """Oro de la tirada y el bono de victoria (0 o 1).
+
+    Ganador: ((1D6 + 1) + hinchas) × 10.000.
+    Perdedor, empate o quien concede: (1D6 + hinchas) × 10.000.
+    """
+    bonus = 1 if outcome == "win" else 0
+    return (d6 + bonus + dedicated_fans) * WINNINGS_MULTIPLIER, bonus
+
+
+def next_dedicated_fans(current: int, outcome: Outcome, roll: Optional[int]) -> int:
+    """Aficion de la jornada siguiente, ya recortada a 1–7.
+
+    El 2D6 se compara con los hinchas de antes de actualizarlos.
+    Quien concede pierde 1 sin tirar.
+    """
+    if outcome == "concede":
+        return clamp_dedicated_fans(current - 1)
+    if roll is None:
+        raise LeagueError("Falta la tirada de hinchas.")
+    if outcome == "win":
+        delta = 1 if roll >= current else 0
+    elif outcome == "loss":
+        delta = -1 if roll <= current else 0
+    elif roll > current:
+        delta = 1
+    elif roll < current:
+        delta = -1
+    else:
+        delta = 0
+    return clamp_dedicated_fans(current + delta)
+
+
+def _fan_message(before: int, after: int) -> str:
+    if after > before:
+        return f"La aficion crece a {after}."
+    if after < before:
+        return f"La aficion baja a {after}."
+    return f"La aficion se queda en {after}."
+
+
+def _apply_side(
+    team: Team,
+    *,
+    outcome: Outcome,
+    d6: int,
+    credit: int,
+    fans_roll: Optional[int],
+) -> SideEconomy:
+    """Suma el oro, aplica el tope y despues mueve los hinchas."""
+    fans_before = team.fans
+    bonus = 1 if outcome == "win" else 0
+    team.treasury += credit
+    discarded = 0
+    if team.treasury > TREASURY_CAP:
+        discarded = team.treasury - TREASURY_CAP
+        team.treasury = TREASURY_CAP
+
+    if outcome == "concede":
+        used_roll = None
+    else:
+        used_roll = fans_roll
+    fans_after = next_dedicated_fans(fans_before, outcome, used_roll)
+    team.fans = fans_after
+
+    notes = []
+    if discarded:
+        notes.append(TAVERN_NOTE)
+    notes.append(_fan_message(fans_before, fans_after))
+    return SideEconomy(
+        team_id=team.id or 0,
+        team_name=team.name,
+        winnings_roll=d6,
+        fans_used=fans_before,
+        winner_bonus=bonus,
+        winnings=credit,
+        discarded=discarded,
+        treasury=team.treasury,
+        fans_before=fans_before,
+        fans_roll=used_roll,
+        fans_after=fans_after,
+        conceded=outcome == "concede",
+        message=" ".join(notes),
+    )
+
+
+def format_gold(amount: int) -> str:
+    """40.000 mo, con el punto de millares que usa el panfleto."""
+    return f"{amount:,}".replace(",", ".") + " mo"
+
+
+def tavern_headline(team_name: str, gold_lost: int, treasury_before: int) -> str:
+    """Titular de la fiesta que se fue de madre. El oro perdido ya está en la cifra."""
+    lost = format_gold(gold_lost)
+    if treasury_before >= TREASURY_CAP:
+        return (
+            f"{team_name} está tan desfasado que la fiesta se les fue de madre: "
+            f"se dejaron {lost} en la taberna."
+        )
+    return (
+        f"En {team_name} la fiesta se les fue de las manos al llegar al tope: "
+        f"se dejaron {lost} en la taberna."
+    )
+
+
+def record_treasury_spills(
+    session: Session,
+    match: Match,
+    *sides: SideEconomy,
+) -> list[TreasurySpill]:
+    """Deja una fila por cada equipo que pierde oro en este partido.
+
+    Si el acta se cierra otra vez, la fila anterior de ese partido se sustituye.
+    """
+    previous = session.exec(select(TreasurySpill).where(TreasurySpill.match_id == match.id)).all()
+    for row in previous:
+        session.delete(row)
+    if previous:
+        session.flush()
+
+    created: list[TreasurySpill] = []
+    for side in sides:
+        if side.discarded <= 0:
+            continue
+        treasury_before = side.treasury + side.discarded - side.winnings
+        spill = TreasurySpill(
+            match_id=match.id or 0,
+            team_id=side.team_id,
+            round_number=match.round_number,
+            gold_lost=side.discarded,
+            winnings=side.winnings,
+            treasury_before=treasury_before,
+            headline=tavern_headline(side.team_name, side.discarded, treasury_before),
+        )
+        session.add(spill)
+        created.append(spill)
+    return created
+
+
+def process_post_match_economy(
+    session: Session,
+    match: Match,
+    home: Team,
+    away: Team,
+    *,
+    home_winnings_roll: Optional[int] = None,
+    away_winnings_roll: Optional[int] = None,
+    home_fans_roll: Optional[int] = None,
+    away_fans_roll: Optional[int] = None,
+    conceded_by_team_id: Optional[int] = None,
+    rng: Optional[random.Random] = None,
+) -> tuple[SideEconomy, SideEconomy]:
+    """Ganancias, tope de tesoreria y aficion de los dos equipos.
+
+    El oro usa los hinchas de antes del partido. La aficion se mueve despues.
+    No hace commit: el cierre del acta guarda los dos equipos juntos.
+    """
+    home_outcome, away_outcome = match_outcomes(
+        match.home_td,
+        match.away_td,
+        conceded_by=conceded_by_team_id,
+        home_id=home.id or 0,
+        away_id=away.id or 0,
+    )
+    home_d6 = _require_d6(home_winnings_roll, rng, "local")
+    away_d6 = _require_d6(away_winnings_roll, rng, "visitante")
+
+    home_formula, _home_bonus = winnings_formula(home_d6, home.fans, home_outcome)
+    away_formula, _away_bonus = winnings_formula(away_d6, away.fans, away_outcome)
+    if home_outcome == "concede":
+        home_credit, away_credit = 0, home_formula + away_formula
+    elif away_outcome == "concede":
+        home_credit, away_credit = home_formula + away_formula, 0
+    else:
+        home_credit, away_credit = home_formula, away_formula
+
+    home_fans_die = None if home_outcome == "concede" else _require_2d6(home_fans_roll, rng, "local")
+    away_fans_die = None if away_outcome == "concede" else _require_2d6(away_fans_roll, rng, "visitante")
+
+    home_side = _apply_side(home, outcome=home_outcome, d6=home_d6, credit=home_credit, fans_roll=home_fans_die)
+    away_side = _apply_side(away, outcome=away_outcome, d6=away_d6, credit=away_credit, fans_roll=away_fans_die)
+
+    match.home_winnings_roll = home_d6
+    match.away_winnings_roll = away_d6
+    match.home_winnings = home_side.winnings
+    match.away_winnings = away_side.winnings
+    match.home_fans_roll = home_side.fans_roll
+    match.away_fans_roll = away_side.fans_roll
+    match.home_fans_before = home_side.fans_before
+    match.away_fans_before = away_side.fans_before
+    match.home_fans_after = home_side.fans_after
+    match.away_fans_after = away_side.fans_after
+    match.home_gold_discarded = home_side.discarded
+    match.away_gold_discarded = away_side.discarded
+    match.conceded_by_team_id = conceded_by_team_id
+    session.add_all([match, home, away])
+    return home_side, away_side
 
 
 # --------------------------------------------------------------------------- #

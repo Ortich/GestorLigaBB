@@ -80,6 +80,7 @@ class TeamSummary(BaseModel):
     logo: str
     treasury: int
     ctv: int
+    fans: int = 1
     current_sponsor_id: Optional[int] = None
     current_sponsor: Optional["SponsorPublic"] = None
 
@@ -138,6 +139,21 @@ class BountyPublic(BaseModel):
     name: str
     description: str
     reward_gold: int
+
+
+class TreasurySpillPublic(BaseModel):
+    """Una fiesta que se fue de madre: oro perdido en una jornada."""
+
+    id: int
+    round_number: int
+    match_id: int
+    team_id: int
+    team_name: str
+    opponent_name: str
+    gold_lost: int
+    winnings: int
+    treasury_before: int
+    headline: str
 
 
 # --------------------------------------------------------------------------- #
@@ -250,6 +266,15 @@ class MatchDetail(BaseModel):
     away_winnings: int
     home_winnings_roll: Optional[int]
     away_winnings_roll: Optional[int]
+    home_fans_roll: Optional[int] = None
+    away_fans_roll: Optional[int] = None
+    home_fans_before: Optional[int] = None
+    away_fans_before: Optional[int] = None
+    home_fans_after: Optional[int] = None
+    away_fans_after: Optional[int] = None
+    home_gold_discarded: int = 0
+    away_gold_discarded: int = 0
+    conceded_by_team_id: Optional[int] = None
     home_mvp_player_id: Optional[int]
     away_mvp_player_id: Optional[int]
     inducements: list[InducementPublic]
@@ -292,6 +317,9 @@ class CompleteMatchRequest(BaseModel):
     away_mvp_player_id: Optional[int] = None
     home_winnings_roll: Optional[int] = None
     away_winnings_roll: Optional[int] = None
+    home_fans_roll: Optional[int] = None
+    away_fans_roll: Optional[int] = None
+    conceded_by_team_id: Optional[int] = None
     bounty_winner_team_id: Optional[int] = None
 
 
@@ -299,6 +327,20 @@ class MatchCompletionReport(BaseModel):
     match_id: int
     home_winnings: int
     away_winnings: int
+    home_winnings_roll: Optional[int] = None
+    away_winnings_roll: Optional[int] = None
+    home_discarded: int = 0
+    away_discarded: int = 0
+    home_fans_before: int = 1
+    home_fans_after: int = 1
+    home_fans_roll: Optional[int] = None
+    away_fans_before: int = 1
+    away_fans_after: int = 1
+    away_fans_roll: Optional[int] = None
+    home_winner_bonus: int = 0
+    away_winner_bonus: int = 0
+    conceded_by_team_id: Optional[int] = None
+    tavern: list[str] = Field(default_factory=list)
     injuries: list[dict[str, Any]]
     rookie_safety_payouts: list[dict[str, Any]]
     bounty_payout: Optional[dict[str, Any]] = None

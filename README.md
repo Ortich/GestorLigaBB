@@ -17,7 +17,7 @@ Fondo Menor e incentivos), el registro de eventos en vivo y el cierre del acta.
 | Prepartido | Calculo de VAE, Fondo Menor y catalogo interactivo de incentivos. |
 | Tiradas | Clima (2D6), Plegarias a Nuffle (1D16) y Patada Inicial (2D6) con la regla exacta en un popup. |
 | En vivo | Vista a dos columnas con botones rapidos de TD, baja, pase, falta e intercepcion. Los SPP se suman solos. |
-| Cierre | Ganancias (D6 x 10.000), MVP (+4 SPP), lesiones, Red de Seguridad de Novatos y reparto de patrocinadores. |
+| Cierre | Ganancias (1D6 + hinchas, +1 si ganas, x 10.000), tope de 150.000, aficion (2D6), MVP, lesiones y patrocinadores. |
 | Comisario | Panel oculto en `/admin` para forzar estados, corregir marcadores, mover oro, revivir jugadores y recalcular la liga. |
 
 ## Stack
@@ -199,6 +199,20 @@ no suman.**
 El equipo con menor VAE recibe exactamente `VAE_mayor - VAE_menor` en oro, gastable solo en
 incentivos de ese partido. No puede anadir oro de su tesoreria y el credito sobrante se pierde. El
 equipo de mayor VAE no puede comprar incentivos.
+
+### Ganancias, hinchas y tope de tesoreria
+
+Los hinchas dedicados empiezan en 1 y se pueden comprar hasta 3 al crear el equipo. No suben de 7 ni bajan de 1.
+
+Al cerrar el acta cada equipo tira 1D6 y le suma sus hinchas de ese momento. El ganador suma 1 mas. El total, multiplicado por 10.000, entra en la tesoreria. Si el empate, ninguno lleva ese +1. Despues, si la tesoreria pasa de 150.000, se queda en 150.000 y el exceso se gasta en la taberna. Cada perdida queda registrada (jornada, equipo, oro y un titular) y se consulta con `GET /api/league/spills?round_number=3`.
+
+La aficion se actualiza despues de cobrar, con un 2D6 comparado con los hinchas de antes:
+
+* el ganador suma 1 si saca su aficion o mas;
+* el perdedor resta 1 si saca su aficion o menos;
+* en un empate, cada equipo suma 1 si saca mas y resta 1 si saca menos.
+
+Si un equipo concede, se lleva 0 de oro, no cobra el MVP y pierde 1 hincha. El rival se queda las dos tiradas de oro y los 8 SPP de los dos MVP.
 
 ### Puntuacion y desempates
 

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import APIRouter
 from sqlmodel import select
 
 from app import league_engine, rules, serializers
 from app.deps import SessionDep
-from app.models import Bounty, Sponsor
-from app.schemas import BountyPublic, LeagueStatePublic, SponsorPublic, StandingRow
+from app.models import Bounty, Sponsor, TreasurySpill
+from app.schemas import BountyPublic, LeagueStatePublic, SponsorPublic, StandingRow, TreasurySpillPublic
 
 router = APIRouter(prefix="/api/league", tags=["liga"])
 
@@ -39,6 +39,16 @@ def sponsors_preview(session: SessionDep) -> dict[str, Any]:
         "first_round": int(rules.sponsor_rules().get("first_round", 3)),
         "assignments": [a.model_dump() for a in assignments],
     }
+
+
+@router.get("/spills", response_model=list[TreasurySpillPublic])
+def treasury_spills(session: SessionDep, round_number: Optional[int] = None) -> list[TreasurySpillPublic]:
+    """Oro perdido en la taberna. Sin jornada devuelve la temporada; con ella, solo esa."""
+    query = select(TreasurySpill).order_by(TreasurySpill.round_number, TreasurySpill.id)
+    if round_number is not None:
+        query = query.where(TreasurySpill.round_number == round_number)
+    rows = session.exec(query).all()
+    return [serializers.spill_public(session, row) for row in rows]
 
 
 @router.get("/bounties", response_model=list[BountyPublic])

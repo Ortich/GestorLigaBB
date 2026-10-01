@@ -5,7 +5,7 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app import rules, serializers
+from app import league_engine, rules, serializers
 from app.deps import CurrentTeam, SessionDep
 from app.errors import ForbiddenError, LeagueError, NotFoundError
 from app.models import Player, PlayerStatus, Team
@@ -261,7 +261,15 @@ def buy_staff(
     elif item == "CHEERLEADER":
         current.cheerleaders = max(0, current.cheerleaders + payload.quantity)
     elif item == "FAN":
-        current.fans = max(1, current.fans + payload.quantity)
+        nuevo = current.fans + payload.quantity
+        if payload.quantity > 0 and nuevo > league_engine.FAN_PURCHASE_MAX:
+            raise LeagueError(
+                "En la creacion del equipo puedes comprar hinchas hasta 3. "
+                "Despues solo cambian con el resultado del partido."
+            )
+        if nuevo < league_engine.FAN_MIN or nuevo > league_engine.FAN_MAX:
+            raise LeagueError("Los hinchas dedicados tienen que quedar entre 1 y 7.")
+        current.fans = nuevo
     else:
         if current.apothecary and payload.quantity > 0:
             raise LeagueError("Ya tienes Apotecario.")
