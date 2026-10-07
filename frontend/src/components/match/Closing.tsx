@@ -20,6 +20,9 @@ export function ClosingSheet({
   onClose: () => void;
   onCompleted: (report: CompletionReport) => void;
 }) {
+  type MvpMode = "auto" | "pick";
+  const [homeMvpMode, setHomeMvpMode] = useState<MvpMode>("auto");
+  const [awayMvpMode, setAwayMvpMode] = useState<MvpMode>("auto");
   const [homeMvp, setHomeMvp] = useState<number | "">("");
   const [awayMvp, setAwayMvp] = useState<number | "">("");
   const [homeRoll, setHomeRoll] = useState<number | "">("");
@@ -29,9 +32,24 @@ export function ClosingSheet({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const eligible = (players: Player[]) => players.filter((p) => p.status !== "RETIRED");
+  const homeCandidates = match.home_mvp_candidates?.length
+    ? match.home_mvp_candidates
+    : match.home_players.filter((p) => p.status !== "RETIRED").slice(0, 3);
+  const awayCandidates = match.away_mvp_candidates?.length
+    ? match.away_mvp_candidates
+    : match.away_players.filter((p) => p.status !== "RETIRED").slice(0, 3);
 
   const submit = async () => {
+    const homeNeedsMvp = concededBy !== match.home_team.id;
+    const awayNeedsMvp = concededBy !== match.away_team.id;
+    if (homeNeedsMvp && homeMvpMode === "pick" && homeMvp === "") {
+      setError(`El rival debe elegir el MVP de ${match.home_team.name} entre los 3 nominados.`);
+      return;
+    }
+    if (awayNeedsMvp && awayMvpMode === "pick" && awayMvp === "") {
+      setError(`El rival debe elegir el MVP de ${match.away_team.name} entre los 3 nominados.`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -39,8 +57,10 @@ export function ClosingSheet({
         method: "POST",
         auth: true,
         body: {
-          home_mvp_player_id: homeMvp === "" ? null : homeMvp,
-          away_mvp_player_id: awayMvp === "" ? null : awayMvp,
+          home_mvp_mode: homeNeedsMvp ? homeMvpMode : "auto",
+          away_mvp_mode: awayNeedsMvp ? awayMvpMode : "auto",
+          home_mvp_player_id: homeNeedsMvp && homeMvpMode === "pick" ? homeMvp : null,
+          away_mvp_player_id: awayNeedsMvp && awayMvpMode === "pick" ? awayMvp : null,
           home_winnings_roll: homeRoll === "" ? null : homeRoll,
           away_winnings_roll: awayRoll === "" ? null : awayRoll,
           conceded_by_team_id: concededBy === "" ? null : concededBy,
@@ -55,22 +75,38 @@ export function ClosingSheet({
     }
   };
 
-  const sides: { team: TeamSummary; players: Player[]; mvp: number | ""; setMvp: (v: number | "") => void; roll: number | ""; setRoll: (v: number | "") => void }[] = [
+  const sides: {
+    team: TeamSummary;
+    candidates: Player[];
+    mode: MvpMode;
+    setMode: (v: MvpMode) => void;
+    mvp: number | "";
+    setMvp: (v: number | "") => void;
+    roll: number | "";
+    setRoll: (v: number | "") => void;
+    rivalName: string;
+  }[] = [
     {
       team: match.home_team,
-      players: match.home_players,
+      candidates: homeCandidates,
+      mode: homeMvpMode,
+      setMode: setHomeMvpMode,
       mvp: homeMvp,
       setMvp: setHomeMvp,
       roll: homeRoll,
       setRoll: setHomeRoll,
+      rivalName: match.away_team.name,
     },
     {
       team: match.away_team,
-      players: match.away_players,
+      candidates: awayCandidates,
+      mode: awayMvpMode,
+      setMode: setAwayMvpMode,
       mvp: awayMvp,
       setMvp: setAwayMvp,
       roll: awayRoll,
       setRoll: setAwayRoll,
+      rivalName: match.home_team.name,
     },
   ];
 
@@ -99,29 +135,63 @@ export function ClosingSheet({
           </p>
           <p className="text-xs text-stone-500">Hinchas dedicados: {side.team.fans}</p>
           <div>
-            <label className="label" htmlFor={`mvp-${side.team.id}`}>
+            <p className="label">
               {concededBy === side.team.id
                 ? "MVP (no cobra: este equipo concede)"
                 : concededBy !== ""
-                  ? "MVP (+8 SPP, el suyo y el del rival)"
-                  : "MVP (+4 SPP)"}
-            </label>
-            <select
-              id={`mvp-${side.team.id}`}
-              className="input"
-              disabled={concededBy === side.team.id}
-              value={concededBy === side.team.id ? "" : side.mvp}
-              onChange={(event) =>
-                side.setMvp(event.target.value === "" ? "" : Number(event.target.value))
-              }
-            >
-              <option value="">Sin MVP</option>
-              {eligible(side.players).map((player) => (
-                <option key={player.id} value={player.id}>
-                  #{player.number} {player.name}
-                </option>
-              ))}
-            </select>
+                  ? "MVP (+8 PE, el suyo y el del rival)"
+                  : "MVP (+4 PE)"}
+            </p>
+            {concededBy === side.team.id ? (
+              <p className="text-xs text-stone-500">Sin MVP: este equipo ha concedido.</p>
+            ) : (
+              <>
+                <p className="mb-2 text-xs text-stone-500">
+                  Nominados (mas interaccion: TD, bloqueos, pases, faltas):{" "}
+                  {side.candidates.map((p) => `#${p.number} ${p.name}`).join(" · ") || "—"}
+                </p>
+                <div className="mb-2 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${side.mode === "auto" ? "bg-emerald-700 text-white" : "btn-secondary"}`}
+                    onClick={() => {
+                      side.setMode("auto");
+                      side.setMvp("");
+                    }}
+                  >
+                    Automatico
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm ${side.mode === "pick" ? "bg-sky-700 text-white" : "btn-secondary"}`}
+                    onClick={() => side.setMode("pick")}
+                  >
+                    Elige {side.rivalName}
+                  </button>
+                </div>
+                {side.mode === "auto" ? (
+                  <p className="text-xs text-stone-400">
+                    La app elige al azar entre los 3 nominados.
+                  </p>
+                ) : (
+                  <select
+                    id={`mvp-${side.team.id}`}
+                    className="input"
+                    value={side.mvp}
+                    onChange={(event) =>
+                      side.setMvp(event.target.value === "" ? "" : Number(event.target.value))
+                    }
+                  >
+                    <option value="">El rival elige MVP</option>
+                    {side.candidates.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        #{player.number} {player.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
           </div>
           <div>
             <label className="label" htmlFor={`roll-${side.team.id}`}>
@@ -163,7 +233,7 @@ export function ClosingSheet({
         {concededBy !== "" && (
           <p className="mt-2 text-xs text-stone-400">
             Quien concede se lleva 0 de oro, no cobra el MVP y pierde 1 hincha. El rival suma las
-            dos tiradas de oro y se queda los 8 SPP.
+            dos tiradas de oro y se queda los 8 PE.
           </p>
         )}
       </div>

@@ -555,12 +555,15 @@ def write_match_chronicle(
         )
 
     for event in events:
-        if event.event_type != EventType.CAS or event.casualty_result is None:
+        if event.event_type not in (EventType.CAS, EventType.INJURY) or event.casualty_result is None:
             continue
         effect = _CASUALTY_EFFECT.get(event.casualty_result, "")
         if effect == "Sin secuelas":
             continue
-        victim = players.get(event.victim_player_id) if event.victim_player_id else None
+        injured_id = event.victim_player_id or (
+            event.player_id if event.event_type == EventType.INJURY else None
+        )
+        victim = players.get(injured_id) if injured_id else None
         if victim is None:
             continue
         victim_team = session.get(Team, victim.team_id)

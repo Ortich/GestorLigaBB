@@ -198,7 +198,7 @@
     "DEFLECTION": 1,
     "FOUL": 0,
     "MVP": 4,
-    "text": "Touchdown 3 SPP, baja causada 2 SPP, pase completado 1 SPP, intercepcion 2 SPP, desvio 1 SPP, MVP 4 SPP."
+    "text": "Touchdown 3 PE, bloqueo que causa baja 2 PE, pase completado 1 PE, intercepcion 2 PE, desvio 1 PE, MVP 4 PE. Las lesiones por falta, publico o armas no dan PE."
   },
   "levels": [
     { "name": "Novato", "min": 0, "max": 5 },

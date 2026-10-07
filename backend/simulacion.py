@@ -274,6 +274,7 @@ def _jugar(
                     json={
                         "team_id": equipo_id,
                         "event_type": "CAS",
+                        "is_block_casualty": True,
                         "player_id": jugador["id"],
                         "victim_player_id": victima["id"],
                         "casualty_result": resultado,
@@ -332,14 +333,20 @@ def _jugar(
         primera_sangre,
         mejor_caza[1],
     )
+    # MVP: el primero de los nominados (mas interaccion). Determinista para la simulacion.
+    detalle_vivo = client.get(f"/api/matches/{match_id}").json()
     cierre_body: dict[str, Any] = {
         "home_winnings_roll": rng.randint(1, 6),
         "away_winnings_roll": rng.randint(1, 6),
+        "home_mvp_mode": "pick",
+        "away_mvp_mode": "pick",
     }
-    if locales:
-        cierre_body["home_mvp_player_id"] = rng.choice(locales)["id"]
-    if visitantes:
-        cierre_body["away_mvp_player_id"] = rng.choice(visitantes)["id"]
+    home_cands = detalle_vivo.get("home_mvp_candidates") or detalle_vivo["home_players"]
+    away_cands = detalle_vivo.get("away_mvp_candidates") or detalle_vivo["away_players"]
+    if home_cands:
+        cierre_body["home_mvp_player_id"] = home_cands[0]["id"]
+    if away_cands:
+        cierre_body["away_mvp_player_id"] = away_cands[0]["id"]
     if recompensa is not None:
         cierre_body["bounty_winner_team_id"] = recompensa
 

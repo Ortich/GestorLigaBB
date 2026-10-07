@@ -6,7 +6,7 @@ from typing import Optional
 
 from sqlmodel import Session, select
 
-from app import league_engine, rules
+from app import league_engine, match_service, rules
 from app.models import (
     Bounty,
     ChronicleEntry,
@@ -40,6 +40,7 @@ def split_skills(raw: str) -> list[str]:
 
 
 def player_public(player: Player) -> PlayerPublic:
+    available = player.spp_available
     return PlayerPublic(
         id=player.id or 0,
         team_id=player.team_id,
@@ -54,9 +55,12 @@ def player_public(player: Player) -> PlayerPublic:
         skills=split_skills(player.skills),
         cost=player.cost,
         current_value=player.current_value,
-        spp=player.spp,
+        spp=available,
+        spp_earned=player.spp_earned,
+        spp_spent=player.spp_spent,
+        spp_available=available,
         status=player.status,
-        level=rules.level_for_spp(player.spp),
+        level=rules.level_for_spp(player.spp_earned),
         niggling_injuries=player.niggling_injuries,
         counts_towards_ctv=league_engine.player_counts_towards_ctv(player),
     )
@@ -195,6 +199,7 @@ def event_public(event: MatchEvent, names: dict[int, str], team_names: dict[int,
         event_type=event.event_type,
         turn=event.turn,
         spp_awarded=event.spp_awarded,
+        is_block_casualty=bool(event.is_block_casualty),
         victim_player_id=event.victim_player_id,
         victim_player_name=names.get(event.victim_player_id) if event.victim_player_id else None,
         casualty_result=event.casualty_result,
@@ -297,6 +302,12 @@ def match_detail(session: Session, match: Match) -> MatchDetail:
         events=[event_public(e, names, team_names) for e in events],
         home_players=[player_public(p) for p in home_players],
         away_players=[player_public(p) for p in away_players],
+        home_mvp_candidates=[
+            player_public(p) for p in match_service.mvp_candidates(session, match, home.id or 0)
+        ],
+        away_mvp_candidates=[
+            player_public(p) for p in match_service.mvp_candidates(session, match, away.id or 0)
+        ],
         scoreboard=scoreboard,
     )
 

@@ -13,7 +13,7 @@ from app import rules
 from app.config import get_settings
 from app.db import init_db
 from app.errors import LeagueError
-from app.routers import admin, auth, league, matches, teams
+from app.routers import admin, auth, league, matches, players, teams
 
 settings = get_settings()
 
@@ -50,6 +50,7 @@ async def league_error_handler(_: Request, exc: LeagueError) -> JSONResponse:
 
 app.include_router(auth.router)
 app.include_router(teams.router)
+app.include_router(players.router)
 app.include_router(league.router)
 app.include_router(matches.router)
 app.include_router(admin.router)

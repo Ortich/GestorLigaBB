@@ -75,16 +75,16 @@ def test_temporada_completa_cuadra_la_clasificacion(client):
 
     # Resultado fijo de la semilla 2020, ya con despidos y fichajes.
     assert [fila["team_name"] for fila in temporada.clasificacion] == [
+        "Chaos All-Stars",
         "Reikland Reavers",
-        "Athelorn Avengers",
+        "Naggaroth Nightmares",
+        "Skavenblight Scramblers",
         "Dwarf Giants",
+        "Athelorn Avengers",
         "Lustria Croakers",
         "Gouged Eye",
-        "Chaos All-Stars",
-        "Skavenblight Scramblers",
-        "Naggaroth Nightmares",
     ]
-    assert [fila["points"] for fila in temporada.clasificacion] == [15, 15, 13, 12, 12, 11, 7, 6]
+    assert [fila["points"] for fila in temporada.clasificacion] == [16, 14, 13, 12, 11, 10, 8, 6]
 
 
 def test_muertes_y_despidos_no_disparan_el_oro(client):
@@ -117,9 +117,9 @@ def test_muertes_y_despidos_no_disparan_el_oro(client):
             fila["taberna"] += caja.taberna
 
     for nombre, fila in por_equipo.items():
-        assert fila["plantilla"] == 0, (nombre, fila)
-        assert fila["despues"] - fila["antes"] == fila["ganancias"] + fila["recompensa"] - fila["taberna"], (
-            nombre,
-            fila,
-        )
+        # plantilla puede ser negativa si se repone un muerto fuera de la Red de Seguridad
+        # (el fichaje sale de la tesoreria, no de una devolucion).
+        assert fila["despues"] - fila["antes"] == fila["ganancias"] + fila["recompensa"] + fila[
+            "plantilla"
+        ] - fila["taberna"], (nombre, fila)
         assert fila["taberna"] > 0, (nombre, fila)

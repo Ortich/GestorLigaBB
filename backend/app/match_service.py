@@ -44,6 +44,140 @@ ALLOWED_TRANSITIONS: dict[MatchStatus, set[MatchStatus]] = {
     MatchStatus.COMPLETED: {MatchStatus.IN_PROGRESS},
 }
 
+# Eventos que otorgan PE y por tanto exigen saber quien los realiza.
+EVENTS_REQUIRING_PLAYER = {
+    EventType.TD,
+    EventType.CAS,
+    EventType.PASS,
+    EventType.INT,
+    EventType.FOUL,
+    EventType.DEFLECTION,
+    EventType.INJURY,
+}
+
+# Prioridad de interaccion para nominar MVP: TD > bloqueos > pases > faltas.
+MVP_INTERACTION_ORDER = (EventType.TD, EventType.CAS, EventType.PASS, EventType.FOUL)
+
+
+def award_spp(player: Player, amount: int) -> None:
+    """Suma PE ganados y mantiene sincronizado el disponible."""
+    if amount <= 0:
+        return
+    player.spp_earned += amount
+    player.spp += amount
+
+
+def revoke_spp(player: Player, amount: int) -> None:
+    """Revierte PE de un evento borrado (solo de lo ganado, no de lo gastado)."""
+    if amount <= 0:
+        return
+    player.spp_earned = max(0, player.spp_earned - amount)
+    player.spp = max(0, player.spp_available)
+
+
+def spend_spp(player: Player, amount: int) -> None:
+    """Gasta PE disponibles en una mejora."""
+    if amount <= 0:
+        return
+    if player.spp_available < amount:
+        raise LeagueError(
+            f"{player.name} tiene {player.spp_available} PE y esta mejora cuesta {amount} PE."
+        )
+    player.spp_spent += amount
+    player.spp = player.spp_available
+
+
+def spp_for_event(event_type: EventType, *, player: Optional[Player], is_block_casualty: bool) -> int:
+    if player is None:
+        return 0
+    if event_type == EventType.INJURY:
+        return 0
+    if event_type == EventType.CAS:
+        # Bloqueo/Blitz: siempre PE si hay causante. Legacy: respeta el flag.
+        return rules.spp_for("CAS") if is_block_casualty else 0
+    return rules.spp_for(event_type.value)
+
+
+def interaction_score(events: list[MatchEvent], player_id: int) -> tuple[int, int, int, int]:
+    """(TD, bloqueos, pases, faltas) — mayor = mas interaccion para el MVP."""
+    td = cas = passes = fouls = 0
+    for event in events:
+        if event.player_id != player_id:
+            continue
+        if event.event_type == EventType.TD:
+            td += 1
+        elif event.event_type == EventType.CAS and event.is_block_casualty:
+            cas += 1
+        elif event.event_type == EventType.PASS:
+            passes += 1
+        elif event.event_type == EventType.FOUL:
+            fouls += 1
+    return (td, cas, passes, fouls)
+
+
+def mvp_candidates(
+    session: Session,
+    match: Match,
+    team_id: int,
+    *,
+    limit: int = 3,
+) -> list[Player]:
+    """Hasta `limit` jugadores del equipo ordenados por interaccion en el partido."""
+    players = session.exec(
+        select(Player).where(Player.team_id == team_id).order_by(Player.number)
+    ).all()
+    eligible = [p for p in players if p.status != PlayerStatus.RETIRED and p.id is not None]
+    events = session.exec(
+        select(MatchEvent).where(MatchEvent.match_id == match.id, MatchEvent.team_id == team_id)
+    ).all()
+
+    scored = sorted(
+        eligible,
+        key=lambda p: (
+            tuple(-n for n in interaction_score(events, p.id or 0)),
+            p.number or 0,
+        ),
+    )
+    return scored[:limit]
+
+
+def pick_mvp_player_id(
+    session: Session,
+    match: Match,
+    team: Team,
+    *,
+    mode: str,
+    player_id: Optional[int],
+    rng: random.Random,
+) -> int:
+    """Resuelve el MVP: automatico (1D3 entre top 3) o elegido entre los candidatos."""
+    candidates = mvp_candidates(session, match, team.id or 0)
+    if not candidates:
+        raise LeagueError(f"{team.name} no tiene jugadores elegibles para el MVP.")
+    candidate_ids = {p.id for p in candidates if p.id is not None}
+
+    mode_norm = (mode or "").strip().lower()
+    if not mode_norm:
+        # Compat API: si mandan player_id sin modo, es eleccion manual.
+        mode_norm = "pick" if player_id is not None else "auto"
+
+    if mode_norm in ("auto", "automatic", "automatico"):
+        chosen = rng.choice(candidates)
+        assert chosen.id is not None
+        return chosen.id
+
+    if mode_norm in ("pick", "manual", "rival", "opponent"):
+        if player_id is None:
+            raise LeagueError(
+                f"Indica el MVP de {team.name} entre los {len(candidates)} candidatos."
+            )
+        if player_id not in candidate_ids:
+            names = ", ".join(f"#{p.number} {p.name}" for p in candidates)
+            raise LeagueError(f"El MVP de {team.name} debe ser uno de: {names}.")
+        return player_id
+
+    raise LeagueError(f"Modo de MVP desconocido: {mode}. Usa 'auto' o 'pick'.")
+
 
 # --------------------------------------------------------------------------- #
 # Helpers
@@ -297,6 +431,11 @@ def add_event(session: Session, match: Match, req: EventRequest) -> MatchEvent:
     require_status(match, MatchStatus.IN_PROGRESS)
     require_participant(match, req.team_id)
 
+    if req.event_type in EVENTS_REQUIRING_PLAYER and req.player_id is None:
+        raise LeagueError(
+            f"Indica que jugador realiza el {req.event_type.value}: hace falta para el acta y los PE."
+        )
+
     player: Optional[Player] = None
     if req.player_id is not None:
         player = session.get(Player, req.player_id)
@@ -306,15 +445,38 @@ def add_event(session: Session, match: Match, req: EventRequest) -> MatchEvent:
             raise LeagueError("El jugador no pertenece al equipo indicado.")
 
     victim: Optional[Player] = None
+    is_block = False
+
     if req.event_type == EventType.CAS:
+        # Bloqueo/Blitz: siempre da PE; el causante es obligatorio.
+        is_block = True
+        if player is None:
+            raise LeagueError("Un bloqueo necesita al jugador que lo realiza (+2 PE).")
         if req.victim_player_id is not None:
             victim = session.get(Player, req.victim_player_id)
             if victim is None:
                 raise NotFoundError("El jugador lesionado no existe.")
             if victim.team_id != _other_team_id(match, req.team_id):
                 raise LeagueError("El jugador lesionado debe pertenecer al equipo rival.")
+        if req.casualty_result is None and req.victim_player_id is not None:
+            raise LeagueError("Indica el resultado de la tirada de heridas.")
 
-    spp = rules.spp_for(req.event_type.value) if player is not None else 0
+    elif req.event_type == EventType.INJURY:
+        # Lesion sin PE: el jugador indicado es el que resulta herido.
+        if player is None:
+            raise LeagueError("Indica el jugador lesionado.")
+        if req.casualty_result is None:
+            raise LeagueError("Indica el resultado de la tirada de heridas.")
+        victim = player
+
+    spp = spp_for_event(req.event_type, player=player, is_block_casualty=is_block)
+
+    if req.event_type == EventType.INJURY:
+        victim_id = player.id if player is not None else None
+    elif req.event_type == EventType.CAS:
+        victim_id = victim.id if victim is not None else req.victim_player_id
+    else:
+        victim_id = req.victim_player_id
 
     event = MatchEvent(
         match_id=match.id,
@@ -323,14 +485,15 @@ def add_event(session: Session, match: Match, req: EventRequest) -> MatchEvent:
         event_type=req.event_type,
         turn=req.turn,
         spp_awarded=spp,
-        victim_player_id=req.victim_player_id,
+        is_block_casualty=is_block if req.event_type == EventType.CAS else False,
+        victim_player_id=victim_id,
         casualty_result=req.casualty_result,
         note=req.note or "",
     )
     session.add(event)
 
     if player is not None and spp:
-        player.spp += spp
+        award_spp(player, spp)
         session.add(player)
 
     if req.event_type == EventType.TD:
@@ -354,7 +517,7 @@ def delete_event(session: Session, event_id: int) -> None:
     if event.player_id and event.spp_awarded:
         player = session.get(Player, event.player_id)
         if player is not None:
-            player.spp = max(0, player.spp - event.spp_awarded)
+            revoke_spp(player, event.spp_awarded)
             session.add(player)
 
     if match is not None and event.event_type == EventType.TD:
@@ -413,8 +576,11 @@ def complete_match(
     if req.conceded_by_team_id is not None:
         require_participant(match, req.conceded_by_team_id)
 
-    # 1. MVP. Quien concede no cobra el suyo: el rival se lleva los 8 SPP.
-    _award_mvps(session, match, home, away, req)
+    dice = rng or random.Random()
+
+    # 1. MVP (obligatorio). Auto = 1 entre top 3; pick = el rival elige entre esos 3.
+    # Quien concede no cobra el suyo: el rival se lleva los 8 SPP.
+    _resolve_and_award_mvps(session, match, home, away, req, dice)
 
     # 2. Ganancias segun hinchas, tope de tesoreria y fluctuacion de aficion.
     home_economy, away_economy = league_engine.process_post_match_economy(
@@ -450,16 +616,21 @@ def complete_match(
     injuries: list[dict[str, Any]] = []
     payouts: list[dict[str, Any]] = []
 
-    cas_events = session.exec(
-        select(MatchEvent).where(
-            MatchEvent.match_id == match.id, MatchEvent.event_type == EventType.CAS
-        ).order_by(MatchEvent.id)
-    ).all()
+    cas_events = [
+        e
+        for e in session.exec(
+            select(MatchEvent).where(MatchEvent.match_id == match.id).order_by(MatchEvent.id)
+        ).all()
+        if e.event_type in (EventType.CAS, EventType.INJURY)
+    ]
 
     for event in cas_events:
-        if event.victim_player_id is None or event.casualty_result is None:
+        injured_id = event.victim_player_id
+        if event.event_type == EventType.INJURY and injured_id is None:
+            injured_id = event.player_id
+        if injured_id is None or event.casualty_result is None:
             continue
-        victim = session.get(Player, event.victim_player_id)
+        victim = session.get(Player, injured_id)
         if victim is None or victim.status == PlayerStatus.DEAD:
             continue
 
@@ -576,40 +747,43 @@ def complete_match(
     )
 
 
-def _award_mvps(
+def _resolve_and_award_mvps(
     session: Session,
     match: Match,
     home: Team,
     away: Team,
     req: CompleteMatchRequest,
+    rng: random.Random,
 ) -> None:
-    """4 SPP al MVP de cada equipo. Si alguien concede, el rival cobra los 8."""
+    """Resuelve MVP (auto o pick entre top 3) y otorga PE. Concesion: el rival cobra x2."""
     mvp_spp = rules.spp_for("MVP")
     conceded = req.conceded_by_team_id
-    awards: list[tuple[Team, Optional[int], str, int]] = []
-    if conceded == home.id:
-        awards.append((away, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp * 2))
-    elif conceded == away.id:
-        awards.append((home, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp * 2))
-    else:
-        awards.append((home, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp))
-        awards.append((away, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp))
 
-    for team, player_id, field, spp in awards:
-        if player_id is None:
-            continue
-        player = session.get(Player, player_id)
+    sides: list[tuple[Team, str, Optional[int], str, int]] = []
+    if conceded == home.id:
+        sides.append((away, req.away_mvp_mode, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp * 2))
+    elif conceded == away.id:
+        sides.append((home, req.home_mvp_mode, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp * 2))
+    else:
+        sides.append((home, req.home_mvp_mode, req.home_mvp_player_id, "home_mvp_player_id", mvp_spp))
+        sides.append((away, req.away_mvp_mode, req.away_mvp_player_id, "away_mvp_player_id", mvp_spp))
+
+    for team, mode, player_id, field, spp in sides:
+        resolved_id = pick_mvp_player_id(
+            session, match, team, mode=mode, player_id=player_id, rng=rng
+        )
+        player = session.get(Player, resolved_id)
         if player is None or player.team_id != team.id:
             raise LeagueError(f"El MVP indicado no pertenece a {team.name}.")
-        player.spp += spp
+        award_spp(player, spp)
         session.add(player)
-        setattr(match, field, player_id)
+        setattr(match, field, resolved_id)
         note = "MVP del partido" if spp == mvp_spp else "MVP del partido y el del rival, que concedio"
         session.add(
             MatchEvent(
                 match_id=match.id,
                 team_id=team.id,
-                player_id=player_id,
+                player_id=resolved_id,
                 event_type=EventType.MVP,
                 spp_awarded=spp,
                 note=note,

@@ -126,10 +126,14 @@ def edit_player(
         player.status = payload.status
         if payload.status == PlayerStatus.ACTIVE:
             player.mng_match_id = None
-    for field in ("spp", "current_value", "ma", "st", "ag", "pa", "av"):
+    for field in ("spp_earned", "spp_spent", "current_value", "ma", "st", "ag", "pa", "av"):
         value = getattr(payload, field)
         if value is not None:
             setattr(player, field, value)
+    if payload.spp is not None:
+        # Compat: fijar PE disponibles ajustando lo ganado, sin tocar lo gastado.
+        player.spp_earned = max(player.spp_spent, payload.spp + player.spp_spent)
+    player.spp = player.spp_available
     session.add(player)
     session.commit()
     session.refresh(player)

@@ -36,7 +36,8 @@ class MatchStatus(str, Enum):
 
 class EventType(str, Enum):
     TD = "TD"
-    CAS = "CAS"
+    CAS = "CAS"  # Bloqueo/Blitz que causa baja (+2 PE)
+    INJURY = "INJURY"  # Lesion sin PE (falta, crowd, armas...)
     FOUL = "FOUL"
     PASS = "PASS"  # Pase completado
     INT = "INT"  # Intercepcion
@@ -193,7 +194,10 @@ class Player(SQLModel, table=True):
     skills: str = ""  # Lista separada por comas
     cost: int = 0  # Coste de contratacion original
     current_value: int = 0  # Valor actual (coste + mejoras)
+    # spp = PE disponibles (earned - spent). Se mantiene sincronizado con los otros dos.
     spp: int = 0
+    spp_earned: int = 0  # PE totales ganados en la carrera
+    spp_spent: int = 0  # PE gastados en habilidades / mejoras
     status: PlayerStatus = Field(default=PlayerStatus.ACTIVE, index=True)
     # Sin ForeignKey a proposito: match ya referencia a player (MVP) y SQLite no
     # sabe ordenar el DROP de un ciclo de claves foraneas.
@@ -202,6 +206,10 @@ class Player(SQLModel, table=True):
     journeyman: bool = False
 
     team: Optional[Team] = Relationship(back_populates="players")
+
+    @property
+    def spp_available(self) -> int:
+        return self.spp_earned - self.spp_spent
 
 
 class Match(SQLModel, table=True):
@@ -271,6 +279,8 @@ class MatchEvent(SQLModel, table=True):
     event_type: EventType = Field(index=True)
     turn: Optional[int] = None
     spp_awarded: int = 0
+    # Solo para CAS: True = placaje/blitz (+2 PE). False = falta, crowd, armas, etc. (0 PE).
+    is_block_casualty: bool = False
     # Solo para CAS: victima y resultado de la tirada de heridas
     victim_player_id: Optional[int] = Field(default=None, foreign_key="player.id")
     casualty_result: Optional[CasualtyResult] = None

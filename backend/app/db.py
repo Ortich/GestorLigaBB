@@ -32,33 +32,74 @@ def init_db() -> None:
 
     SQLModel.metadata.create_all(engine)
     _ensure_match_economy_columns()
+    _ensure_player_spp_columns()
+    _ensure_match_event_columns()
 
 
-def _ensure_match_economy_columns() -> None:
-    """Anade las columnas del cierre economico si la base ya existia."""
+def _ensure_columns(table: str, columns: dict[str, str]) -> None:
+    """Anade columnas nuevas a una tabla SQLite ya existente."""
     if not _settings.database_url.startswith("sqlite"):
         return
-    columns = {
-        "home_fans_roll": "INTEGER",
-        "away_fans_roll": "INTEGER",
-        "home_fans_before": "INTEGER",
-        "away_fans_before": "INTEGER",
-        "home_fans_after": "INTEGER",
-        "away_fans_after": "INTEGER",
-        "home_gold_discarded": "INTEGER NOT NULL DEFAULT 0",
-        "away_gold_discarded": "INTEGER NOT NULL DEFAULT 0",
-        "conceded_by_team_id": "INTEGER",
-    }
     with engine.begin() as connection:
         present = {
             row[1]
-            for row in connection.exec_driver_sql("PRAGMA table_info(match)").fetchall()
+            for row in connection.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
         }
         if not present:
             return
         for name, declaration in columns.items():
             if name not in present:
-                connection.exec_driver_sql(f"ALTER TABLE match ADD COLUMN {name} {declaration}")
+                connection.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {declaration}")
+
+
+def _ensure_match_economy_columns() -> None:
+    """Anade las columnas del cierre economico si la base ya existia."""
+    _ensure_columns(
+        "match",
+        {
+            "home_fans_roll": "INTEGER",
+            "away_fans_roll": "INTEGER",
+            "home_fans_before": "INTEGER",
+            "away_fans_before": "INTEGER",
+            "home_fans_after": "INTEGER",
+            "away_fans_after": "INTEGER",
+            "home_gold_discarded": "INTEGER NOT NULL DEFAULT 0",
+            "away_gold_discarded": "INTEGER NOT NULL DEFAULT 0",
+            "conceded_by_team_id": "INTEGER",
+        },
+    )
+
+
+def _ensure_player_spp_columns() -> None:
+    """Anade spp_earned / spp_spent y rellena con el spp disponible actual."""
+    _ensure_columns(
+        "player",
+        {
+            "spp_earned": "INTEGER NOT NULL DEFAULT 0",
+            "spp_spent": "INTEGER NOT NULL DEFAULT 0",
+        },
+    )
+    if not _settings.database_url.startswith("sqlite"):
+        return
+    with engine.begin() as connection:
+        present = {
+            row[1]
+            for row in connection.exec_driver_sql("PRAGMA table_info(player)").fetchall()
+        }
+        if not present or "spp_earned" not in present:
+            return
+        # Bases antiguas: el campo spp era el disponible. Lo tomamos como ganado
+        # historico (no sabemos cuanto se gasto antes).
+        connection.exec_driver_sql(
+            "UPDATE player SET spp_earned = spp WHERE spp_earned = 0 AND spp > 0 AND spp_spent = 0"
+        )
+
+
+def _ensure_match_event_columns() -> None:
+    _ensure_columns(
+        "matchevent",
+        {"is_block_casualty": "INTEGER NOT NULL DEFAULT 0"},
+    )
 
 
 def get_session() -> Generator[Session, None, None]:

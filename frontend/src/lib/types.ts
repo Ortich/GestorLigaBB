@@ -7,7 +7,15 @@ export type MatchStatus =
   | "IN_PROGRESS"
   | "COMPLETED";
 
-export type EventType = "TD" | "CAS" | "FOUL" | "PASS" | "INT" | "DEFLECTION" | "MVP";
+export type EventType =
+  | "TD"
+  | "CAS"
+  | "INJURY"
+  | "FOUL"
+  | "PASS"
+  | "INT"
+  | "DEFLECTION"
+  | "MVP";
 
 export type CasualtyResult =
   | "BADLY_HURT"
@@ -43,6 +51,9 @@ export interface Player {
   cost: number;
   current_value: number;
   spp: number;
+  spp_earned: number;
+  spp_spent: number;
+  spp_available: number;
   status: PlayerStatus;
   level: string;
   niggling_injuries: number;
@@ -167,6 +178,7 @@ export interface MatchEvent {
   event_type: EventType;
   turn: number | null;
   spp_awarded: number;
+  is_block_casualty: boolean;
   victim_player_id: number | null;
   victim_player_name: string | null;
   casualty_result: CasualtyResult | null;
@@ -237,6 +249,8 @@ export interface MatchDetail {
   events: MatchEvent[];
   home_players: Player[];
   away_players: Player[];
+  home_mvp_candidates: Player[];
+  away_mvp_candidates: Player[];
   scoreboard: Record<string, Record<string, number>>;
 }
 

@@ -54,7 +54,10 @@ class PlayerPublic(BaseModel):
     skills: list[str]
     cost: int
     current_value: int
-    spp: int
+    spp: int  # PE disponibles (earned - spent)
+    spp_earned: int
+    spp_spent: int
+    spp_available: int
     status: PlayerStatus
     level: str
     niggling_injuries: int
@@ -220,6 +223,7 @@ class MatchEventPublic(BaseModel):
     event_type: EventType
     turn: Optional[int]
     spp_awarded: int
+    is_block_casualty: bool = False
     victim_player_id: Optional[int]
     victim_player_name: Optional[str]
     casualty_result: Optional[CasualtyResult]
@@ -296,6 +300,8 @@ class MatchDetail(BaseModel):
     events: list[MatchEventPublic]
     home_players: list[PlayerPublic]
     away_players: list[PlayerPublic]
+    home_mvp_candidates: list[PlayerPublic] = Field(default_factory=list)
+    away_mvp_candidates: list[PlayerPublic] = Field(default_factory=list)
     scoreboard: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -324,10 +330,16 @@ class EventRequest(BaseModel):
     turn: Optional[int] = None
     victim_player_id: Optional[int] = None
     casualty_result: Optional[CasualtyResult] = None
+    # Solo CAS: True = placaje/blitz (+2 PE). False = falta, crowd, armas... (0 PE).
+    is_block_casualty: bool = False
     note: str = ""
 
 
 class CompleteMatchRequest(BaseModel):
+    # Modo MVP: "auto" (elige al azar entre los 3 con mas interaccion) o "pick" (el rival elige).
+    # Si se omite el modo y hay player_id, se trata como pick (compatibilidad).
+    home_mvp_mode: str = ""
+    away_mvp_mode: str = ""
     home_mvp_player_id: Optional[int] = None
     away_mvp_player_id: Optional[int] = None
     home_winnings_roll: Optional[int] = None
@@ -372,6 +384,14 @@ class AdvancementRequest(BaseModel):
     stat: Optional[str] = None
 
 
+class LevelUpRequest(BaseModel):
+    """Mejora libre: el entrenador indica habilidad, coste en PE y subida de valor."""
+
+    skill_name: str
+    spp_cost: int
+    value_increase: int
+
+
 class HirePlayerRequest(BaseModel):
     position_code: str
     name: str
@@ -403,6 +423,8 @@ class AdminTreasuryRequest(BaseModel):
 class AdminPlayerRequest(BaseModel):
     status: Optional[PlayerStatus] = None
     spp: Optional[int] = None
+    spp_earned: Optional[int] = None
+    spp_spent: Optional[int] = None
     current_value: Optional[int] = None
     ma: Optional[int] = None
     st: Optional[int] = None

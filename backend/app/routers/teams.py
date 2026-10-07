@@ -5,13 +5,15 @@ from typing import Any
 from fastapi import APIRouter
 from sqlmodel import select
 
-from app import league_engine, rules, serializers
+from app import league_engine, match_service, rules, serializers
 from app.deps import CurrentTeam, SessionDep
 from app.errors import ForbiddenError, LeagueError, NotFoundError
 from app.models import Player, PlayerStatus, Team
 from app.schemas import (
     AdvancementRequest,
     HirePlayerRequest,
+    LevelUpRequest,
+    PlayerPublic,
     StaffPurchaseRequest,
     TeamDetail,
     TeamSummary,
@@ -191,9 +193,9 @@ def advance_player(
     advancement = rules.advancement_by_code(payload.code)
     if advancement is None:
         raise NotFoundError(f"La mejora '{payload.code}' no existe.")
-    if player.spp < advancement["spp"]:
+    if player.spp_available < advancement["spp"]:
         raise LeagueError(
-            f"{player.name} tiene {player.spp} SPP y esta mejora cuesta {advancement['spp']} SPP."
+            f"{player.name} tiene {player.spp_available} PE y esta mejora cuesta {advancement['spp']} PE."
         )
 
     if payload.code in _STAT_ADVANCEMENTS:
@@ -220,12 +222,49 @@ def advance_player(
         skills.append(skill)
         player.skills = ", ".join(skills)
 
-    player.spp -= advancement["spp"]
+    match_service.spend_spp(player, advancement["spp"])
     player.current_value += advancement["value"]
     session.add(player)
     session.commit()
     session.refresh(current)
     return serializers.team_detail(session, current)
+
+
+@router.post("/{team_id}/players/{player_id}/levelup", response_model=PlayerPublic)
+def level_up_player(
+    team_id: int,
+    player_id: int,
+    payload: LevelUpRequest,
+    current: CurrentTeam,
+    session: SessionDep,
+) -> PlayerPublic:
+    """Gasta PE libres para anadir una habilidad y subir el valor actual."""
+    _assert_own_team(current, team_id)
+    player = session.get(Player, player_id)
+    if player is None or player.team_id != team_id:
+        raise NotFoundError("Jugador no encontrado en tu plantilla.")
+    if player.status == PlayerStatus.DEAD:
+        raise LeagueError("Un jugador muerto no puede mejorar.")
+    if payload.spp_cost <= 0:
+        raise LeagueError("El coste en PE debe ser mayor que cero.")
+    if payload.value_increase < 0:
+        raise LeagueError("El incremento de valor no puede ser negativo.")
+
+    skill = (payload.skill_name or "").strip()
+    if not skill:
+        raise LeagueError("Indica el nombre de la habilidad adquirida.")
+    skills = serializers.split_skills(player.skills)
+    if skill in skills:
+        raise LeagueError(f"{player.name} ya tiene {skill}.")
+    skills.append(skill)
+    player.skills = ", ".join(skills)
+
+    match_service.spend_spp(player, payload.spp_cost)
+    player.current_value += payload.value_increase
+    session.add(player)
+    session.commit()
+    session.refresh(player)
+    return serializers.player_public(player)
 
 
 @router.post("/{team_id}/staff", response_model=TeamDetail)

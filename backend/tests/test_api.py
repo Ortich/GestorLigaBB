@@ -17,6 +17,17 @@ from tests.conftest import add_players, ensure_state, make_match, make_team
 MASTER = {"X-Master-Key": "test-master-key"}
 
 
+
+def _both_mvps(session, duel, **extra):
+    home_p = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    away_p = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    body = {
+        "home_mvp_player_id": home_p.id,
+        "away_mvp_player_id": away_p.id,
+    }
+    body.update(extra)
+    return body
+
 def auth(client, team_id: int, pin: str = "1234") -> dict[str, str]:
     response = client.post("/api/auth/login", json={"team_id": team_id, "pin": pin})
     assert response.status_code == 200, response.text
@@ -131,6 +142,7 @@ def test_flujo_completo_de_partido(client, session, duel):
         json={
             "team_id": home.id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": scorer.id,
             "victim_player_id": victim.id,
             "casualty_result": "SERIOUSLY_HURT",
@@ -142,6 +154,7 @@ def test_flujo_completo_de_partido(client, session, duel):
 
     session.refresh(scorer)
     assert scorer.spp == 5  # 3 por el TD + 2 por la baja
+    assert scorer.spp_earned == 5
 
     # 6. Cierre del acta.
     response = client.post(
@@ -149,6 +162,7 @@ def test_flujo_completo_de_partido(client, session, duel):
         headers=headers,
         json={
             "home_mvp_player_id": scorer.id,
+            "away_mvp_player_id": victim.id,
             "home_winnings_roll": 4,
             "away_winnings_roll": 2,
             "home_fans_roll": 9,
@@ -182,6 +196,7 @@ def test_flujo_completo_de_partido(client, session, duel):
     session.refresh(duel["home"])
     session.refresh(duel["away"])
     assert scorer.spp == 9  # +4 del MVP
+    assert scorer.spp_earned == 9
     assert victim.status == PlayerStatus.MNG
     assert match.status == MatchStatus.COMPLETED
     assert duel["home"].fans == 6  # 2D6 = 9, mayor que 5
@@ -207,7 +222,10 @@ def test_flujo_completo_de_partido(client, session, duel):
     assert by_kind["INJURY"] == [
         "Gouged Eye 1 (Gouged Eye) queda lesionado: Se pierde el proximo partido."
     ]
-    assert by_kind["MVP"] == ["Reavers 1 es el MVP de Reavers."]
+    assert by_kind["MVP"] == [
+        "Reavers 1 es el MVP de Reavers.",
+        "Gouged Eye 1 es el MVP de Gouged Eye.",
+    ]
     assert len(by_kind["TAVERN"]) == 2
     assert len(by_kind["FANS"]) == 2
     assert "FOUL" not in by_kind
@@ -374,6 +392,7 @@ def test_mercy_rule_compensa_la_muerte_en_jornada_1(client, session, duel):
             json={
                 "team_id": duel["home"].id,
                 "event_type": "CAS",
+                "is_block_casualty": True,
                 "player_id": killer.id,
                 "victim_player_id": victim.id,
                 "casualty_result": "DEAD",
@@ -383,7 +402,7 @@ def test_mercy_rule_compensa_la_muerte_en_jornada_1(client, session, duel):
     report = client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     ).json()
 
     payouts = report["rookie_safety_payouts"]
@@ -417,6 +436,7 @@ def test_sin_mercy_rule_a_partir_de_la_jornada_3(client, session, duel):
         json={
             "team_id": duel["home"].id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": killer.id,
             "victim_player_id": victim.id,
             "casualty_result": "DEAD",
@@ -425,7 +445,7 @@ def test_sin_mercy_rule_a_partir_de_la_jornada_3(client, session, duel):
     report = client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     ).json()
     assert report["rookie_safety_payouts"] == []
 
@@ -445,6 +465,7 @@ def test_la_lesion_de_por_vida_no_paga_la_red_de_seguridad(client, session, duel
         json={
             "team_id": duel["home"].id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": killer.id,
             "victim_player_id": victim.id,
             "casualty_result": "LASTING_INJURY_ST",
@@ -453,7 +474,7 @@ def test_la_lesion_de_por_vida_no_paga_la_red_de_seguridad(client, session, duel
     report = client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     ).json()
     assert report["rookie_safety_payouts"] == []
     session.refresh(duel["away"])
@@ -481,6 +502,7 @@ def test_la_muerte_de_un_mejorado_devuelve_el_valor_actual(client, session, duel
         json={
             "team_id": duel["home"].id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": killer.id,
             "victim_player_id": victim.id,
             "casualty_result": "DEAD",
@@ -489,7 +511,7 @@ def test_la_muerte_de_un_mejorado_devuelve_el_valor_actual(client, session, duel
     report = client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     ).json()
     assert report["rookie_safety_payouts"][0]["gold"] == 80_000
     assert report["rookie_safety_payouts"][0]["percentage"] == 100
@@ -517,6 +539,7 @@ def test_despedir_a_un_lesionado_devuelve_solo_el_coste_base(client, session, du
         json={
             "team_id": duel["home"].id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": killer.id,
             "victim_player_id": victim.id,
             "casualty_result": "LASTING_INJURY_ST",
@@ -525,7 +548,7 @@ def test_despedir_a_un_lesionado_devuelve_solo_el_coste_base(client, session, du
     client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     )
     session.refresh(victim)
     assert victim.status == PlayerStatus.MNG
@@ -561,6 +584,7 @@ def test_lesion_persistente_baja_la_caracteristica(client, session, duel):
         json={
             "team_id": duel["home"].id,
             "event_type": "CAS",
+                "is_block_casualty": True,
             "player_id": killer.id,
             "victim_player_id": victim.id,
             "casualty_result": "LASTING_INJURY_MA",
@@ -569,7 +593,7 @@ def test_lesion_persistente_baja_la_caracteristica(client, session, duel):
     client.post(
         f"/api/matches/{match_id}/complete",
         headers=headers,
-        json={"home_winnings_roll": 1, "away_winnings_roll": 1},
+        json=_both_mvps(session, duel, home_winnings_roll=1, away_winnings_roll=1),
     )
     session.refresh(victim)
     assert victim.ma == ma_before - 1
@@ -680,6 +704,8 @@ def test_mejorar_jugador_consume_spp_y_sube_valor(client, session, duel):
     headers = auth(client, duel["home"].id, "1111")
     player = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
     player.spp = 6
+    player.spp_earned = 6
+    player.spp_spent = 0
     session.add(player)
     session.commit()
 
@@ -691,6 +717,8 @@ def test_mejorar_jugador_consume_spp_y_sube_valor(client, session, duel):
     assert response.status_code == 200
     session.refresh(player)
     assert player.spp == 0
+    assert player.spp_earned == 6
+    assert player.spp_spent == 6
     assert player.current_value == 80_000  # 60.000 de base + 20.000 de la mejora
     assert "Bloqueo" in player.skills
 
@@ -736,10 +764,13 @@ def test_ganancias_con_un_hincha_no_tocan_el_tope(client, session):
         headers=headers,
         json={"team_id": home.id, "event_type": "TD", "player_id": scorer.id},
     )
+    away_scorer = session.exec(select(Player).where(Player.team_id == away.id)).first()
     report = client.post(
         f"/api/matches/{match.id}/complete",
         headers=headers,
         json={
+            "home_mvp_player_id": scorer.id,
+            "away_mvp_player_id": away_scorer.id,
             "home_winnings_roll": 3,
             "away_winnings_roll": 2,
             "home_fans_roll": 7,
@@ -813,3 +844,62 @@ def test_no_se_compran_mas_de_tres_hinchas(client, session):
     )
     assert response.status_code == 400
     assert "hasta 3" in response.json()["detail"]
+
+
+def test_td_sin_jugador_rechazado(client, session, duel):
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+    response = client.post(
+        f"/api/matches/{match_id}/events",
+        headers=headers,
+        json={"team_id": duel["home"].id, "event_type": "TD"},
+    )
+    assert response.status_code == 400
+    assert "jugador" in response.json()["detail"].lower()
+
+
+def test_lesion_sin_bloqueo_no_da_pe(client, session, duel):
+    headers = _reach_pre_match(client, duel)
+    match_id = duel["match"].id
+    client.post(f"/api/matches/{match_id}/rolls", headers=headers, json={"kind": "WEATHER", "value": 7})
+    client.post(f"/api/matches/{match_id}/start", headers=headers)
+    victim = session.exec(select(Player).where(Player.team_id == duel["away"].id)).first()
+    client.post(
+        f"/api/matches/{match_id}/events",
+        headers=headers,
+        json={
+            "team_id": duel["away"].id,
+            "event_type": "INJURY",
+            "player_id": victim.id,
+            "casualty_result": "DEAD",
+        },
+    )
+    session.refresh(victim)
+    assert victim.spp == 0
+    assert victim.spp_earned == 0
+    body = client.get(f"/api/matches/{match_id}", headers=headers).json()
+    assert any(e["event_type"] == "INJURY" and e["spp_awarded"] == 0 for e in body["events"])
+
+
+def test_levelup_libre_gasta_pe(client, session, duel):
+    headers = auth(client, duel["home"].id, "1111")
+    player = session.exec(select(Player).where(Player.team_id == duel["home"].id)).first()
+    player.spp = 6
+    player.spp_earned = 6
+    player.spp_spent = 0
+    session.add(player)
+    session.commit()
+    response = client.post(
+        f"/api/players/{player.id}/levelup",
+        headers=headers,
+        json={"skill_name": "Esquivar", "spp_cost": 6, "value_increase": 20_000},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["spp_available"] == 0
+    assert body["spp_earned"] == 6
+    assert body["spp_spent"] == 6
+    assert body["current_value"] == 80_000
+    assert "Esquivar" in body["skills"]

@@ -15,11 +15,15 @@ import type {
 
 const QUICK_ACTIONS: { type: EventType; label: string; style: string }[] = [
   { type: "TD", label: "Touchdown", style: "bg-emerald-600 text-white hover:bg-emerald-500" },
-  { type: "CAS", label: "Baja", style: "bg-blood-600 text-white hover:bg-blood-500" },
+  { type: "CAS", label: "Bloqueo", style: "bg-blood-600 text-white hover:bg-blood-500" },
+  { type: "INJURY", label: "Lesion", style: "bg-rose-800 text-white hover:bg-rose-700" },
   { type: "PASS", label: "Pase", style: "bg-sky-600 text-white hover:bg-sky-500" },
   { type: "FOUL", label: "Falta", style: "bg-amber-600 text-white hover:bg-amber-500" },
   { type: "INT", label: "Intercepcion", style: "btn-secondary" },
 ];
+
+/** Acciones que dan PE / se atribuyen a un jugador y exigen autor. */
+const REQUIRES_PLAYER: EventType[] = ["TD", "CAS", "INJURY", "PASS", "INT", "FOUL"];
 
 const CASUALTY_ORDER: CasualtyResult[] = [
   "BADLY_HURT",
@@ -51,11 +55,21 @@ export function LiveTracker({
 }) {
   const [turn, setTurn] = useState(1);
   const [pending, setPending] = useState<Pending | null>(null);
-  const [victimFor, setVictimFor] = useState<Pending | null>(null);
+  const [pickPlayerFor, setPickPlayerFor] = useState<Pending | null>(null);
+  const [blockFor, setBlockFor] = useState<Pending | null>(null);
+  const [injuryFor, setInjuryFor] = useState<Pending | null>(null);
   const [victim, setVictim] = useState<Player | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [showLog, setShowLog] = useState(false);
+
+  const resetSheets = () => {
+    setPending(null);
+    setPickPlayerFor(null);
+    setBlockFor(null);
+    setInjuryFor(null);
+    setVictim(null);
+  };
 
   const send = async (body: Record<string, unknown>) => {
     setBusy(true);
@@ -68,9 +82,7 @@ export function LiveTracker({
           body,
         }),
       );
-      setPending(null);
-      setVictimFor(null);
-      setVictim(null);
+      resetSheets();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -94,16 +106,66 @@ export function LiveTracker({
     }
   };
 
+  const startBlock = (choice: Pending) => {
+    setPending(null);
+    setPickPlayerFor(null);
+    setVictim(null);
+    setBlockFor(choice);
+  };
+
+  const startInjury = (choice: Pending) => {
+    setPending(null);
+    setPickPlayerFor(null);
+    setInjuryFor(choice);
+  };
+
   const pickAction = (choice: Pending, type: EventType) => {
     if (type === "CAS") {
+      if (!choice.player) {
+        setPending(null);
+        setPickPlayerFor({ ...choice, type });
+        return;
+      }
+      startBlock(choice);
+      return;
+    }
+    if (type === "INJURY") {
+      if (!choice.player) {
+        setPending(null);
+        setPickPlayerFor({ ...choice, type });
+        return;
+      }
+      startInjury(choice);
+      return;
+    }
+    if (REQUIRES_PLAYER.includes(type) && !choice.player) {
       setPending(null);
-      setVictimFor({ ...choice, type });
+      setPickPlayerFor({ ...choice, type });
       return;
     }
     void send({
       team_id: choice.team.id,
       event_type: type,
       player_id: choice.player?.id ?? null,
+      turn,
+    });
+  };
+
+  const confirmPlayer = (player: Player) => {
+    if (!pickPlayerFor?.type) return;
+    const next = { ...pickPlayerFor, player };
+    if (pickPlayerFor.type === "CAS") {
+      startBlock(next);
+      return;
+    }
+    if (pickPlayerFor.type === "INJURY") {
+      startInjury(next);
+      return;
+    }
+    void send({
+      team_id: next.team.id,
+      event_type: pickPlayerFor.type,
+      player_id: player.id,
       turn,
     });
   };
@@ -117,6 +179,11 @@ export function LiveTracker({
     teamId === match.home_team.id
       ? { team: match.away_team, players: match.away_players }
       : { team: match.home_team, players: match.home_players };
+
+  const teamPlayers = (teamId: number) =>
+    (teamId === match.home_team.id ? match.home_players : match.away_players).filter(
+      (player) => player.status !== "DEAD" && player.status !== "RETIRED",
+    );
 
   return (
     <>
@@ -185,6 +252,8 @@ export function LiveTracker({
                       </span>
                       <span className="block truncate text-[10px] text-stone-500">
                         {player.status === "MNG" ? "No disponible" : player.position}
+                        {" · "}
+                        {player.spp_available ?? player.spp} PE
                       </span>
                     </span>
                     {stats.length > 0 && (
@@ -199,7 +268,6 @@ export function LiveTracker({
         ))}
       </div>
 
-      {/* Siempre a mano: la plantilla es larga y el boton no puede quedar al final del scroll. */}
       <div className="fixed bottom-[60px] left-1/2 z-30 flex w-full max-w-xl -translate-x-1/2 gap-2 border-t border-white/10 bg-pitch-950/95 px-4 py-2 backdrop-blur">
         <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowLog(true)}>
           Acta ({match.events.length})
@@ -216,12 +284,17 @@ export function LiveTracker({
           pending
             ? pending.player
               ? `#${pending.player.number} ${pending.player.name}`
-              : `${pending.team.name} (sin jugador)`
+              : `${pending.team.name} (elige jugador luego)`
             : ""
         }
         onClose={() => setPending(null)}
       >
-        <p className="text-sm text-stone-400">Turno {turn}. Elige la accion a registrar.</p>
+        <p className="text-sm text-stone-400">
+          Turno {turn}.{" "}
+          {pending?.player
+            ? "Elige la accion a registrar."
+            : "Bloqueo = baja que causas tu (+2 PE). Lesion = herida sin PE (falta, publico...)."}
+        </p>
         <div className="grid grid-cols-2 gap-2">
           {QUICK_ACTIONS.map((action) => (
             <button
@@ -238,20 +311,61 @@ export function LiveTracker({
       </Sheet>
 
       <Sheet
-        open={victimFor !== null}
-        title="Registrar baja"
+        open={pickPlayerFor !== null}
+        title={
+          pickPlayerFor?.type === "INJURY"
+            ? "Quien resulta lesionado?"
+            : pickPlayerFor?.type
+              ? `Quien realiza el ${EVENT_LABEL[pickPlayerFor.type]}?`
+              : "Elige jugador"
+        }
+        onClose={() => setPickPlayerFor(null)}
+      >
+        {pickPlayerFor && (
+          <>
+            <p className="text-sm text-stone-400">
+              {pickPlayerFor.type === "CAS"
+                ? "Elige al jugador que provoca la baja con el bloqueo (+2 PE)."
+                : pickPlayerFor.type === "INJURY"
+                  ? "Elige al jugador herido (falta, empujon al publico, armas...). No da PE."
+                  : "Los PE se suman a este jugador."}
+            </p>
+            <div className="space-y-1.5">
+              {teamPlayers(pickPlayerFor.team.id).map((player) => (
+                <button
+                  key={player.id}
+                  type="button"
+                  className="btn btn-secondary w-full justify-start"
+                  disabled={busy}
+                  onClick={() => confirmPlayer(player)}
+                >
+                  #{player.number} {player.name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </Sheet>
+
+      <Sheet
+        open={blockFor !== null}
+        title="Registrar bloqueo"
         onClose={() => {
-          setVictimFor(null);
+          setBlockFor(null);
           setVictim(null);
         }}
       >
-        {victimFor && !victim && (
+        {blockFor && !victim && (
           <>
             <p className="text-sm text-stone-400">
-              Elige al jugador de {rivalOf(victimFor.team.id).team.name} que ha caido.
+              {blockFor.player
+                ? `${blockFor.player.name} ha causado la baja. Elige a la victima de ${
+                    rivalOf(blockFor.team.id).team.name
+                  }.`
+                : `Elige a la victima de ${rivalOf(blockFor.team.id).team.name}.`}
             </p>
             <div className="space-y-1.5">
-              {rivalOf(victimFor.team.id)
+              {rivalOf(blockFor.team.id)
                 .players.filter((player) => player.status === "ACTIVE")
                 .map((player) => (
                   <button
@@ -267,26 +381,69 @@ export function LiveTracker({
             <button
               type="button"
               className="btn btn-ghost w-full"
-              disabled={busy}
+              disabled={busy || !blockFor.player}
               onClick={() =>
                 send({
-                  team_id: victimFor.team.id,
+                  team_id: blockFor.team.id,
                   event_type: "CAS",
-                  player_id: victimFor.player?.id ?? null,
+                  player_id: blockFor.player?.id ?? null,
+                  is_block_casualty: true,
                   turn,
                 })
               }
             >
-              Anotar la baja sin indicar victima
+              Anotar el bloqueo sin indicar victima (+2 PE)
             </button>
           </>
         )}
 
-        {victimFor && victim && (
+        {blockFor && victim && (
           <>
             <p className="text-sm text-stone-400">
               Resultado de la tirada de heridas de{" "}
-              <strong className="text-stone-200">{victim.name}</strong>. Se aplicara al cerrar el acta.
+              <strong className="text-stone-200">{victim.name}</strong>. Se aplicara al cerrar el
+              acta.
+            </p>
+            <div className="space-y-1.5">
+              {CASUALTY_ORDER.map((result) => (
+                <button
+                  key={result}
+                  type="button"
+                  disabled={busy || !blockFor.player}
+                  className={`btn w-full justify-start text-sm ${
+                    result === "DEAD" ? "bg-blood-700 text-white" : "btn-secondary"
+                  }`}
+                  onClick={() =>
+                    send({
+                      team_id: blockFor.team.id,
+                      event_type: "CAS",
+                      player_id: blockFor.player?.id ?? null,
+                      victim_player_id: victim.id,
+                      casualty_result: result,
+                      is_block_casualty: true,
+                      turn,
+                    })
+                  }
+                >
+                  {CASUALTY_LABEL[result]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </Sheet>
+
+      <Sheet
+        open={injuryFor !== null}
+        title="Registrar lesion"
+        onClose={() => setInjuryFor(null)}
+      >
+        {injuryFor?.player && (
+          <>
+            <p className="text-sm text-stone-400">
+              Resultado de la tirada de heridas de{" "}
+              <strong className="text-stone-200">{injuryFor.player.name}</strong> (sin PE: falta,
+              publico, armas...). Se aplicara al cerrar el acta.
             </p>
             <div className="space-y-1.5">
               {CASUALTY_ORDER.map((result) => (
@@ -299,10 +456,9 @@ export function LiveTracker({
                   }`}
                   onClick={() =>
                     send({
-                      team_id: victimFor.team.id,
-                      event_type: "CAS",
-                      player_id: victimFor.player?.id ?? null,
-                      victim_player_id: victim.id,
+                      team_id: injuryFor.team.id,
+                      event_type: "INJURY",
+                      player_id: injuryFor.player!.id,
                       casualty_result: result,
                       turn,
                     })
@@ -332,8 +488,12 @@ export function LiveTracker({
                   <p className="truncate text-xs text-stone-500">
                     {event.team_name}
                     {event.turn ? ` \u00b7 turno ${event.turn}` : ""}
-                    {event.spp_awarded ? ` \u00b7 +${event.spp_awarded} SPP` : ""}
-                    {event.victim_player_name ? ` \u00b7 victima: ${event.victim_player_name}` : ""}
+                    {event.spp_awarded ? ` \u00b7 +${event.spp_awarded} PE` : ""}
+                    {event.event_type === "INJURY" ? " \u00b7 sin PE" : ""}
+                    {event.victim_player_name && event.event_type === "CAS"
+                      ? ` \u00b7 victima: ${event.victim_player_name}`
+                      : ""}
+                    {event.casualty_result ? ` \u00b7 ${CASUALTY_LABEL[event.casualty_result]}` : ""}
                   </p>
                 </div>
                 <button

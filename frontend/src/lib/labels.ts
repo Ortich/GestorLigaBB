@@ -32,7 +32,8 @@ export const PLAYER_STATUS_STYLE: Record<PlayerStatus, string> = {
 
 export const EVENT_LABEL: Record<EventType, string> = {
   TD: "Touchdown",
-  CAS: "Baja",
+  CAS: "Bloqueo",
+  INJURY: "Lesion",
   FOUL: "Falta",
   PASS: "Pase",
   INT: "Intercepcion",
@@ -42,7 +43,8 @@ export const EVENT_LABEL: Record<EventType, string> = {
 
 export const EVENT_ICON: Record<EventType, string> = {
   TD: "\u{1F3C8}",
-  CAS: "\u{1F915}",
+  CAS: "\u{1F4A5}",
+  INJURY: "\u{1F915}",
   FOUL: "\u{1F45F}",
   PASS: "\u{1F3AF}",
   INT: "\u{1F9E4}",
